@@ -9,11 +9,17 @@ self.addEventListener("message", (event) => {
 
   const port = event.ports[0]
 
+  /**
+   * Echo
+   */
+
   port.addEventListener("message", (event) => {
     console.log(location.origin, "service_worker", event.data)
   })
 
-  setInterval(() => port.postMessage("ping"), 1000)
+  setInterval(() => {
+    port.postMessage("ping")
+  }, 1000)
 
   port.start()
 })

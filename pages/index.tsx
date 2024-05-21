@@ -1,5 +1,5 @@
 export default function Home() {
   return <main className="">
-    hello world
+    You should not see this
   </main>
 }

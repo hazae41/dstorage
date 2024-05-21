@@ -10,19 +10,25 @@ window.addEventListener("message", (event) => {
 
   const port = event.ports[0]
 
+  /**
+   * ServiceWorker APIs (e.g. IndexedDB)
+   */
   if (event.data === "service_worker") {
     serviceWorker.postMessage("hello", [port])
     return
   }
 
+  /**
+   * Page APIs (e.g. localStorage)
+   */
   if (event.data === "iframe") {
     port.addEventListener("message", async (event) => {
-      if (event.data === "set") {
+      if (event.data === "localStorage.set") {
         // TODO
         return
       }
 
-      if (event.data === "get") {
+      if (event.data === "localStorage.get") {
         // TODO
         return
       }

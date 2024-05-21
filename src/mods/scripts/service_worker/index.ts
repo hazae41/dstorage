@@ -10,6 +10,9 @@ self.addEventListener("message", (event) => {
   const port = event.ports[0]
 
   port.addEventListener("message", (event) => {
+    /**
+     * Echo
+     */
     port.postMessage(event.data)
   })
 
