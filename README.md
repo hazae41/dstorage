@@ -4,6 +4,18 @@ Proof-of-concept of a public and secure origin-bound storage for your origin-les
 
 ## Why
 
+This allows your website to use the storage (localStorage, IndexedDB, WebAuthn) of another origin.
+
+This is particularily useful when your website doesn't have a single origin.
+
+For example, if you use the same app from multiple origins (e.g. browser extensions, mobile webviews).
+
+Or if you want maximum decentralization by allowing multiple origins to operate on the same storage (e.g. IPFS websites).
+
+For example, allowing both https://myapp.ipfs.io and https://myapp.example.com to have the same storage.
+
+Or you just want some basic versioning like https://1.myapp.org and https://2.myapp.org.
+
 ## Communication
 
 A few modes of cross-origin communication are available depending on your use-case.
@@ -100,7 +112,7 @@ Also, as explained below, an attacker can try to fill the storage with random st
 
 This can be mitigated by only allowing a limited storage from user-approved origins using a confirmation page.
 
-This can make the UX worse than just using a local storage.
+This can make the UX worse than just using a local storage, but can prevent phishing because a new origin will show a warning.
 
 ## Security
 
