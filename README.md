@@ -1,40 +1,133 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# DStorage
 
-## Getting Started
+Proof-of-concept of a public and secure origin-bound storage for your origin-less apps (e.g. IPFS).
 
-First, run the development server:
+## Why
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Communication
+
+A few modes of cross-origin communication are available depending on your use-case.
+
+### Service-worker to service-worker (recommended)
+
+If you need APIs available on a service-worker (e.g. IndexedDB), you can use this mode.
+
+You can use cross-origin service-worker to service-worker communication bootstrapped by an iframe.
+
+You just need a page to bootstrap the communication from your service-worker to the other service-worker.
+
+This communication continues to work even a few seconds after all pages are closed (~30 seconds on Chromium).
+
+When the communication is closed, just reopen a new bootstrap page.
+
+### Page to service-worker
+
+This is the same as above but this time the communication is closed once you close the page.
+
+### Page to iframe
+
+When some APIs are not available on the other service-worker (e.g. localStorage), you can communicate directly with the iframe.
+
+The communication is lost when the iframe (or the page) is closed.
+
+### Service-worker to iframe
+
+This is technically possible but adds nothing useful. 
+
+I you have opened an iframe from a page, just use it from there.
+
+The communication is lost when the iframe is closed.
+
+## APIs
+
+### IndexedDB (service-worker, iframe)
+
+This is a simple key-value storage using IndexedDB.
+
+```tsx
+const data = ["indexedDB.set", key, value]
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+```tsx
+const data = ["indexedDB.get", key]
+```
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+```tsx
+const data = ["indexedDB.delete", key]
+```
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+### localStorage (iframe)
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+This is a simple key-value storage using localStorage.
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+```tsx
+const data = ["localStorage.set", key, value]
+```
 
-## Learn More
+```tsx
+const data = ["localStorage.get", key]
+```
 
-To learn more about Next.js, take a look at the following resources:
+```tsx
+const data = ["localStorage.delete", key]
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### WebAuthn KV (service-worker, iframe)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+This is a key-value storage using WebAuthn.
 
-## Deploy on Vercel
+This will open a page requiring user confirmation.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```tsx
+const data = ["webAuthn.kv.set", key, value]
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+```tsx
+const data = ["webAuthn.kv.get", key]
+```
+
+```tsx
+const data = ["webAuthn.kv.delete", key]
+```
+
+## Limitations
+
+The main limitation is storage availability. 
+
+On some browsers the storage is not persistent unless the user adds the storage website to his favorites.
+
+Also, as explained below, an attacker can try to fill the storage with random stuff until it's full.
+
+This can be mitigated by only allowing a limited storage from user-approved origins using a confirmation page.
+
+This can make the UX worse than just using a local storage.
+
+## Security
+
+Since all operation are cross-origin through JSON-like messages, there is no much security risk as the browser sandboxes everything.
+
+### Attacker from a third-party website
+
+All storages do not have discoverability, so there is no risk of an attacker seeing or tampering with the data. 
+
+He would need to know the storage keys of the data.
+
+Bruteforce is not viable if you use strong random-like keys like UUIDs or hashes.
+
+Even if he can guess the keys, assuming your data is strongly encrypted, he would only be able to delete that data.
+
+Another possible attack is filling the storage with random stuff to cause the storage to be full.
+
+This can be mitigated by the storage website; only allowing a limited storage from user-approved origins.
+
+### Attacker from the storage website
+
+If the storage website is compromised (supply-chain, DNS, BGP attack), there is not much it can do.
+
+Assuming your data is strongly encrypted, it can't do anything beside deleting that data or refusing to serve it.
+
+### Attacker from your website
+
+If your own website is compromised then the storage is probably available to the attacker, just like any local storage.
+
+You can somewhat mitigate this by encrypting your data using an user-provided password or some WebAuthn authentication.
