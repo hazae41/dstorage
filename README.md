@@ -1,6 +1,6 @@
 # DStorage
 
-Proof-of-concept of a public and secure origin-bound storage for your origin-less apps (e.g. IPFS).
+Proof-of-concept of a public and secure origin-bound storage for your origin-less apps.
 
 ## Why
 
