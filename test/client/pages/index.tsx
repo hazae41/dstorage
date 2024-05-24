@@ -1,19 +1,19 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 export default function Home() {
-  const [done, setDone] = useState(false)
   const [iframe, setIframe] = useState<HTMLIFrameElement | null>(null)
+  const [port, setPort] = useState<MessagePort | null>(null)
 
   useEffect(() => {
     if (iframe == null)
       return
 
-    const channel = new MessageChannel()
-
     /**
      * Wait for the iframe and its service-worker to load
      */
     setTimeout(async () => {
+      const channel = new MessageChannel()
+
       /**
        * Wait for our service-worker to load
        */
@@ -26,18 +26,25 @@ export default function Home() {
       iframe.contentWindow!.postMessage("hello", "*", [channel.port2])
       serviceWorker.postMessage("hello", [channel.port1])
 
-      /**
-       * We can close the iframe
-       */
-      setTimeout(() => setDone(true), 1000)
+      setPort(channel.port1)
     }, 1000)
   }, [iframe])
+
+  const onClick = useCallback(() => {
+    if (port == null)
+      return
+
+    open("https://consensus-nonprofit-surgeons-camcorders.trycloudflare.com/#/kv_ask?name=test", "_blank")
+  }, [port])
 
   return <main className="">
     <iframe
       ref={setIframe}
       width={0}
       height={0}
-      src="https://asp-mai-relatives-cb.trycloudflare.com/iframe.html" />
+      src="https://consensus-nonprofit-surgeons-camcorders.trycloudflare.com/iframe.html" />
+    <button onClick={onClick}>
+      ask
+    </button>
   </main>
 }

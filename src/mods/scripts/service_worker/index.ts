@@ -73,6 +73,8 @@ self.addEventListener("message", async (event) => {
             if (!globalResult)
               return false
 
+            console.log("allowing", name, origin)
+
             await database.setOrThrow(btoa(`${name}#${origin}`), true)
 
             originData.kv.allowed = true
@@ -201,6 +203,8 @@ self.addEventListener("message", async (event) => {
       const pageRequests = new Map<RpcId, Future<RpcResponse>>()
 
       const onPageRequest = async (request: RpcRequest<unknown>) => {
+        console.log("page request", request)
+
         if (request.method === "global_respond") {
           const [init] = request.params as [RpcResponseInit]
           const response = RpcResponse.from(init)

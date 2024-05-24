@@ -9,7 +9,7 @@ export default function Home() {
 }
 
 export function HashRouter() {
-  const url = new URL(location.hash.slice(1))
+  const url = new URL(location.hash.slice(1), location.origin)
 
   if (url.pathname === "/kv_ask") {
     const id = url.searchParams.get("id")!
@@ -33,6 +33,7 @@ export function KvAsk(props: {
   const { id, name, origin } = props
 
   const onAllow = useCallback(async () => {
+    await navigator.serviceWorker.register("/service_worker.js")
     const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 
     const pageCounter = new RpcCounter()
@@ -48,6 +49,7 @@ export function KvAsk(props: {
   }, [id])
 
   const onReject = useCallback(async () => {
+    await navigator.serviceWorker.register("/service_worker.js")
     const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 
     const pageCounter = new RpcCounter()

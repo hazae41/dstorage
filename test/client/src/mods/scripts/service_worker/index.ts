@@ -19,7 +19,6 @@ self.addEventListener("message", (event) => {
     console.log(location.origin, "service_worker", event.data)
   })
 
-  originPort.postMessage(JSON.stringify(originCounter.prepare({ method: "kv_ask", params: ["test"] })))
   originPort.start()
 })
 
