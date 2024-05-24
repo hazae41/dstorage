@@ -31,6 +31,7 @@ window.addEventListener("message", async (event) => {
         const [url] = request.params as [string]
 
         open(url, "_blank", "norefferer")
+
         return
       }
     }
