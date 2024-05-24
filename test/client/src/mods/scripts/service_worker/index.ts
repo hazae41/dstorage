@@ -1,4 +1,5 @@
-import { RpcCounter } from "@hazae41/jsonrpc"
+import { Future } from "@hazae41/future"
+import { RpcCounter, RpcId, RpcResponse } from "@hazae41/jsonrpc"
 
 export { }
 
@@ -9,17 +10,17 @@ console.log(location.origin, "service_worker", "starting")
 self.addEventListener("message", (event) => {
   console.log(location.origin, "service_worker", event.data)
 
-  const [port] = event.ports
+  const [originPort] = event.ports
 
-  const counter = new RpcCounter()
+  const originCounter = new RpcCounter()
+  const originRequests = new Map<RpcId, Future<RpcResponse>>()
 
-  port.addEventListener("message", (event) => {
+  originPort.addEventListener("message", (event) => {
     console.log(location.origin, "service_worker", event.data)
   })
 
-  port.postMessage(JSON.stringify(counter.prepare({ method: "kv_ask", params: ["test"] })))
-
-  port.start()
+  originPort.postMessage(JSON.stringify(originCounter.prepare({ method: "kv_ask", params: ["test"] })))
+  originPort.start()
 })
 
 console.log(location.origin, "service_worker", "started")

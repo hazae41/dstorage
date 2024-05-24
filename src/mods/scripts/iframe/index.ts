@@ -15,6 +15,8 @@ window.addEventListener("message", async (event) => {
    * crossOrigin -> iframe
    */
   if (event.origin !== location.origin) {
+    if (event.data !== "hello")
+      return
     const [originPort] = event.ports
 
     if (originPort == null)

@@ -43,24 +43,23 @@ export function KvAsk(props: {
 
     const globalResponse = new RpcOk(id, true)
 
-    const pageRequest = pageCounter.prepare({ method: "global_respond", params: [globalResponse] })
-    pagePort.postMessage(JSON.stringify(pageRequest))
+    pagePort.postMessage(JSON.stringify(pageCounter.prepare({ method: "global_respond", params: [globalResponse] })))
     pagePort.start()
   }, [id])
 
   const onReject = useCallback(async () => {
     const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 
-    const counter = new RpcCounter()
-    const channel = new MessageChannel()
-    serviceWorker.postMessage(location.origin, [channel.port2])
+    const pageCounter = new RpcCounter()
+    const pageChannel = new MessageChannel()
+    const pagePort = pageChannel.port1
 
-    const response = new RpcOk(id, false)
+    serviceWorker.postMessage(location.origin, [pageChannel.port2])
 
-    const request = counter.prepare({ method: "respond", params: [response] })
-    channel.port1.postMessage(JSON.stringify(request))
+    const globalResponse = new RpcOk(id, false)
 
-    channel.port1.start()
+    pagePort.postMessage(JSON.stringify(pageCounter.prepare({ method: "global_respond", params: [globalResponse] })))
+    pagePort.start()
   }, [id])
 
   return <div>
