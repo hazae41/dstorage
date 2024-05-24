@@ -23,8 +23,8 @@ export default function Home() {
       /**
        * Connect yall
        */
-      iframe.contentWindow!.postMessage("service_worker", "*", [channel.port2])
-      serviceWorker.postMessage("service_worker", [channel.port1])
+      iframe.contentWindow!.postMessage("hello", "*", [channel.port2])
+      serviceWorker.postMessage("hello", [channel.port1])
 
       /**
        * We can close the iframe
@@ -34,11 +34,10 @@ export default function Home() {
   }, [iframe])
 
   return <main className="">
-    {!done &&
-      <iframe
-        ref={setIframe}
-        width={0}
-        height={0}
-        src="https://wool-ws-nice-shown.trycloudflare.com/iframe.html" />}
+    <iframe
+      ref={setIframe}
+      width={0}
+      height={0}
+      src="https://asp-mai-relatives-cb.trycloudflare.com/iframe.html" />
   </main>
 }

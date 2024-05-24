@@ -60,7 +60,7 @@ self.addEventListener("message", (event) => {
       if (request.method === "kv_ask") {
         const [name] = request.params as [string]
 
-        const current = await database.getOrThrow(atob(`${name}#${origin}`))
+        const current = await database.getOrThrow(btoa(`${name}#${origin}`))
 
         if (current === true) {
           metadata.kv.allowed = true
@@ -79,7 +79,7 @@ self.addEventListener("message", (event) => {
             if (!result)
               return false
 
-            await database.setOrThrow(atob(`${name}#${origin}`), true)
+            await database.setOrThrow(btoa(`${name}#${origin}`), true)
 
             metadata.kv.allowed = true
             return true

@@ -1,3 +1,5 @@
+import { RpcCounter } from "@hazae41/jsonrpc"
+
 export { }
 
 declare const self: ServiceWorkerGlobalScope
@@ -9,17 +11,13 @@ self.addEventListener("message", (event) => {
 
   const [port] = event.ports
 
-  /**
-   * Echo
-   */
+  const counter = new RpcCounter()
 
   port.addEventListener("message", (event) => {
     console.log(location.origin, "service_worker", event.data)
   })
 
-  setInterval(() => {
-    port.postMessage("ping")
-  }, 1000)
+  port.postMessage(JSON.stringify(counter.prepare({ method: "kv_ask", params: ["test"] })))
 
   port.start()
 })

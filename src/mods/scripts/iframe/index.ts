@@ -12,25 +12,8 @@ window.addEventListener("message", (event) => {
   const origin = event.origin
   const [port] = event.ports
 
-  /**
-   * ServiceWorker APIs (e.g. IndexedDB)
-   */
-  if (event.data === "service_worker") {
-    serviceWorker.postMessage(origin, [port])
-    return
-  }
-
-  /**
-   * Page APIs (e.g. localStorage)
-   */
-  if (event.data === "iframe") {
-    /**
-     * NOOP
-     */
-
-    return
-  }
-
+  serviceWorker.postMessage(origin, [port])
+  return
 })
 
 console.log(location.origin, "iframe", "started")
