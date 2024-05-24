@@ -1,6 +1,6 @@
 import { Database } from "@/libs/indexeddb"
 import { Future } from "@hazae41/future"
-import { RpcCounter, RpcErr, RpcError, RpcId, RpcOk, RpcRequest, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc"
+import { RpcCounter, RpcErr, RpcError, RpcId, RpcOk, RpcRequest, RpcRequestInit, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc"
 
 export { }
 
@@ -8,126 +8,245 @@ declare const self: ServiceWorkerGlobalScope
 
 console.log(location.origin, "service_worker", "starting")
 
-const counter = new RpcCounter()
-
 const database = await Database.openOrThrow("keyval", 1)
-const requests = new Map<RpcId, Future<RpcResponse>>()
 
-self.addEventListener("message", (event) => {
-  if (event.origin !== location.origin)
-    return
+const globalCounter = new RpcCounter()
+const globalRequests = new Map<RpcId, Future<RpcResponse>>()
 
-  console.log(location.origin, "service_worker", event.data)
+self.addEventListener("message", async (event) => {
+  console.debug(`${event.origin} -> ${location.origin}/service_worker: ${event.data}`)
 
-  const origin = event.data
-  const [port] = event.ports
+  /**
+   * iframe,page -> serviceWorker
+   */
+  if (event.origin === location.origin) {
+    const origin = event.data
 
-  if (origin === location.origin) {
-    const onRequest2 = async (request: RpcRequest<unknown>) => {
-      if (request.method === "respond") {
-        const [init] = request.params as [RpcResponseInit]
+    /**
+     * (crossOrigin ->) iframe -> serviceWorker
+     */
+    if (origin !== location.origin) {
+      const [originPort, iframePort] = event.ports
 
-        const response = RpcResponse.from(init)
-        const future = requests.get(response.id)
-
-        future?.resolve(response)
+      if (originPort == null)
         return
-      }
-    }
+      if (iframePort == null)
+        return
+      const originData = { kv: { allowed: false } }
 
-    const onRequest = async (request: RpcRequest<unknown>) => {
-      try {
-        return new RpcOk(request.id, await onRequest2(request))
-      } catch (e: unknown) {
-        return new RpcErr(request.id, RpcError.rewrap(e))
-      }
-    }
+      const originCounter = new RpcCounter()
+      const originRequests = new Map<RpcId, Future<RpcResponse>>()
 
-    port.addEventListener("message", async (event) => {
-      const request = RpcRequest.from(JSON.parse(event.data))
-      const response = await onRequest(request)
-      port.postMessage(JSON.stringify(response))
-    })
+      const onOriginRequest = async (request: RpcRequest<unknown>) => {
+        if (request.method === "kv_ask") {
+          const [name] = request.params as [string]
 
-    port.start()
-    return
-  }
+          const current = await database.getOrThrow(btoa(`${name}#${origin}`))
 
-  if (origin !== location.origin) {
-    const metadata = { kv: { allowed: false } }
+          if (current === true) {
+            originData.kv.allowed = true
+            return true
+          }
 
-    const onRequest2 = async (request: RpcRequest<unknown>) => {
-      if (request.method === "kv_ask") {
-        const [name] = request.params as [string]
-
-        const current = await database.getOrThrow(btoa(`${name}#${origin}`))
-
-        if (current === true) {
-          metadata.kv.allowed = true
-          return true
-        } else {
-          const id = counter.id++
-          const future = new Future<RpcResponse>()
+          const globalId = globalCounter.id++
+          const globalFuture = new Future<RpcResponse>()
 
           try {
-            requests.set(id, future)
+            globalRequests.set(globalId, globalFuture)
 
-            await self.clients.openWindow(`/#/kv_ask?id=${id}&name=${name}&origin=${origin}`)
+            const url = `/#/kv_ask?id=${globalId}&name=${name}&origin=${origin}`
 
-            const result = await future.promise.then(r => r.unwrap())
+            const iframeRequest = iframeCounter.prepare({ method: "open", params: [url] })
+            const iframeFuture = new Future<RpcResponse>()
 
-            if (!result)
+            try {
+              iframeRequests.set(iframeRequest.id, iframeFuture)
+
+              iframePort.postMessage(JSON.stringify(iframeRequest))
+              await iframeFuture.promise.then(r => r.unwrap())
+            } finally {
+              iframeRequests.delete(iframeRequest.id)
+            }
+
+            const globalResult = await globalFuture.promise.then(r => r.unwrap())
+
+            if (!globalResult)
               return false
 
             await database.setOrThrow(btoa(`${name}#${origin}`), true)
 
-            metadata.kv.allowed = true
+            originData.kv.allowed = true
             return true
           } finally {
-            requests.delete(id)
+            globalRequests.delete(globalId)
           }
+        }
+
+        if (request.method === "kv_set") {
+          const [name, key, value] = request.params as [string, string, unknown]
+
+          if (!originData.kv.allowed)
+            throw new Error("Not allowed")
+
+          await database.setOrThrow(`${name}#${key}`, value)
+
+          return
+        }
+
+        if (request.method === "kv_get") {
+          const [name, key] = request.params as [string, string]
+
+          if (!originData.kv.allowed)
+            throw new Error("Not allowed")
+
+          const value = await database.getOrThrow(`${name}#${key}`)
+
+          return value
         }
       }
 
-      if (request.method === "kv_set") {
-        const [name, key, value] = request.params as [string, string, unknown]
+      originPort.addEventListener("message", async (event) => {
+        if (typeof event.data !== "string")
+          return
+        const requestOrResponse = JSON.parse(event.data) as RpcRequestInit | RpcResponseInit
 
-        if (!metadata.kv.allowed)
-          throw new Error("Not allowed")
+        if (typeof requestOrResponse !== "object")
+          return
 
-        await database.setOrThrow(`${name}#${key}`, value)
+        if ("method" in requestOrResponse) {
+          const request = RpcRequest.from(requestOrResponse)
 
+          try {
+            const result = await onOriginRequest(request)
+            const response = new RpcOk(request.id, result)
+            const data = JSON.stringify(response)
+
+            originPort.postMessage(data)
+            return
+          } catch (e: unknown) {
+            const error = RpcError.rewrap(e)
+            const response = new RpcErr(request.id, error)
+            const data = JSON.stringify(response)
+
+            originPort.postMessage(data)
+            return
+          }
+        } else {
+          const response = RpcResponse.from(requestOrResponse)
+
+          originRequests.get(response.id)?.resolve(response)
+          return
+        }
+      })
+
+      originPort.start()
+
+      const iframeCounter = new RpcCounter()
+      const iframeRequests = new Map<RpcId, Future<RpcResponse>>()
+
+      const onIframeRequest = async (request: RpcRequest<unknown>) => {
+        /**
+         * NOOP
+         */
+      }
+
+      iframePort.addEventListener("message", async (event) => {
+        if (typeof event.data !== "string")
+          return
+        const requestOrResponse = JSON.parse(event.data) as RpcRequestInit | RpcResponseInit
+
+        if (typeof requestOrResponse !== "object")
+          return
+
+        if ("method" in requestOrResponse) {
+          const request = RpcRequest.from(requestOrResponse)
+
+          try {
+            const result = await onIframeRequest(request)
+            const response = new RpcOk(request.id, result)
+            const data = JSON.stringify(response)
+
+            iframePort.postMessage(data)
+            return
+          } catch (e: unknown) {
+            const error = RpcError.rewrap(e)
+            const response = new RpcErr(request.id, error)
+            const data = JSON.stringify(response)
+
+            iframePort.postMessage(data)
+            return
+          }
+        } else {
+          const response = RpcResponse.from(requestOrResponse)
+
+          iframeRequests.get(response.id)?.resolve(response)
+          return
+        }
+      })
+
+      iframePort.start()
+      return
+    }
+
+    /**
+     * page -> serviceWorker
+     */
+    if (origin === location.origin) {
+      const [pagePort] = event.ports
+
+      if (pagePort == null)
         return
+
+      const pageCounter = new RpcCounter()
+      const pageRequests = new Map<RpcId, Future<RpcResponse>>()
+
+      const onPageRequest = async (request: RpcRequest<unknown>) => {
+        if (request.method === "global_respond") {
+          const [init] = request.params as [RpcResponseInit]
+          const response = RpcResponse.from(init)
+
+          globalRequests.get(response.id)?.resolve(response)
+          return
+        }
       }
 
-      if (request.method === "kv_get") {
-        const [name, key] = request.params as [string, string]
+      pagePort.addEventListener("message", async (event) => {
+        if (typeof event.data !== "string")
+          return
+        const requestOrResponse = JSON.parse(event.data) as RpcRequestInit | RpcResponseInit
 
-        if (!metadata.kv.allowed)
-          throw new Error("Not allowed")
+        if (typeof requestOrResponse !== "object")
+          return
 
-        const value = await database.getOrThrow(`${name}#${key}`)
+        if ("method" in requestOrResponse) {
+          const request = RpcRequest.from(requestOrResponse)
 
-        return value
-      }
+          try {
+            const result = await onPageRequest(request)
+            const response = new RpcOk(request.id, result)
+            const data = JSON.stringify(response)
+
+            pagePort.postMessage(data)
+            return
+          } catch (e: unknown) {
+            const error = RpcError.rewrap(e)
+            const response = new RpcErr(request.id, error)
+            const data = JSON.stringify(response)
+
+            pagePort.postMessage(data)
+            return
+          }
+        } else {
+          const response = RpcResponse.from(requestOrResponse)
+
+          pageRequests.get(response.id)?.resolve(response)
+          return
+        }
+      })
+
+      pagePort.start()
+      return
     }
-
-    const onRequest = async (request: RpcRequest<unknown>) => {
-      try {
-        return new RpcOk(request.id, await onRequest2(request))
-      } catch (e: unknown) {
-        return new RpcErr(request.id, RpcError.rewrap(e))
-      }
-    }
-
-    port.addEventListener("message", async (event) => {
-      const request = RpcRequest.from(JSON.parse(event.data))
-      const response = await onRequest(request)
-      port.postMessage(JSON.stringify(response))
-    })
-
-    port.start()
-    return
   }
 })
 
