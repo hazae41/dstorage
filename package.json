@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@hazae41/future": "^1.0.3",
+    "@hazae41/jsonrpc": "^1.0.5",
     "next": "14.2.3",
     "react": "^18",
     "react-dom": "^18"

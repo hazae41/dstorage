@@ -1,3 +1,4 @@
+
 export { }
 
 console.log(location.origin, "iframe", "startign")
@@ -8,13 +9,14 @@ const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 window.addEventListener("message", (event) => {
   console.log(location.origin, "iframe", event.data)
 
-  const port = event.ports[0]
+  const origin = event.origin
+  const [port] = event.ports
 
   /**
    * ServiceWorker APIs (e.g. IndexedDB)
    */
   if (event.data === "service_worker") {
-    serviceWorker.postMessage("hello", [port])
+    serviceWorker.postMessage(origin, [port])
     return
   }
 
@@ -22,19 +24,10 @@ window.addEventListener("message", (event) => {
    * Page APIs (e.g. localStorage)
    */
   if (event.data === "iframe") {
-    port.addEventListener("message", async (event) => {
-      if (event.data === "localStorage.set") {
-        // TODO
-        return
-      }
+    /**
+     * NOOP
+     */
 
-      if (event.data === "localStorage.get") {
-        // TODO
-        return
-      }
-    })
-
-    port.start()
     return
   }
 

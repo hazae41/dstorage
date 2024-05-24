@@ -36,53 +36,53 @@ When the communication is closed, just reopen a new bootstrap page.
 
 This is the same as above but this time the communication is closed once you close the page.
 
-### Page to iframe
-
-When some APIs are not available on the other service-worker (e.g. localStorage), you can communicate directly with the iframe.
-
-The communication is lost when the iframe (or the page) is closed.
-
-### Service-worker to iframe
-
-This is technically possible but adds nothing useful. 
-
-I you have opened an iframe from a page, just use it from there.
-
-The communication is lost when the iframe is closed.
-
 ## APIs
 
-### IndexedDB (service-worker, iframe)
+All communication is done via JSON-RPC 2.0.
+
+### Example
+
+Given the function
+
+```tsx
+function example(value: boolean): void
+```
+
+You can call it with
+
+```tsx
+port.postMessage(JSON.stringify({ jsonrpc: "2.0", id: 123, method: "example", params: [true] }))
+```
+
+And get the result with
+
+```tsx
+const { id, result, error } = JSON.parse(event.data)
+```
+
+### KeyVal (service-worker, iframe)
 
 This is a simple key-value storage using IndexedDB.
 
-```tsx
-const data = ["indexedDB.set", key, value]
-```
+The access is scoped by user-interaction
 
 ```tsx
-const data = ["indexedDB.get", key]
+function kv_ask(name: string): void
 ```
+
+This will ask user-interaction for access to `name`
 
 ```tsx
-const data = ["indexedDB.delete", key]
+function kv_set(name: string, key: string, value: unknown): void
 ```
 
-### localStorage (iframe)
-
-This is a simple key-value storage using localStorage.
+This will set `key` to `value` in `name`
 
 ```tsx
-const data = ["localStorage.set", key, value]
+function kv_get(name: string, key: string): unknown
 ```
 
-```tsx
-const data = ["localStorage.get", key]
-```
-
-```tsx
-const data = ["localStorage.delete", key]
-```
+This will return `value` from `key` in `name`
 
 ### WebAuthn KV (service-worker, iframe)
 
