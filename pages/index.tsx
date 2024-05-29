@@ -1,5 +1,6 @@
+import { RpcRouter } from "@/libs/jsonrpc";
 import { Client } from "@/libs/react/client";
-import { RpcCounter, RpcOk } from "@hazae41/jsonrpc";
+import { RpcOk } from "@hazae41/jsonrpc";
 import { useCallback } from "react";
 
 export default function Home() {
@@ -36,37 +37,45 @@ export function KvAsk(props: {
     await navigator.serviceWorker.register("/service_worker.js")
     const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 
-    const pageCounter = new RpcCounter()
     const pageChannel = new MessageChannel()
     const pagePort = pageChannel.port1
+    const pageRouter = new RpcRouter(pagePort)
 
     serviceWorker.postMessage(location.origin, [pageChannel.port2])
 
-    const globalResponse = new RpcOk(id, true)
-
-    pagePort.postMessage(JSON.stringify(pageCounter.prepare({ method: "global_respond", params: [globalResponse] })))
+    const pageHello = pageRouter.hello()
     pagePort.start()
+    await pageHello
+
+    await pageRouter.request({
+      method: "global_respond",
+      params: [new RpcOk(id, true)]
+    }).await().then(r => r.unwrap())
   }, [id])
 
   const onReject = useCallback(async () => {
     await navigator.serviceWorker.register("/service_worker.js")
     const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 
-    const pageCounter = new RpcCounter()
     const pageChannel = new MessageChannel()
     const pagePort = pageChannel.port1
+    const pageRouter = new RpcRouter(pagePort)
 
     serviceWorker.postMessage(location.origin, [pageChannel.port2])
 
-    const globalResponse = new RpcOk(id, false)
-
-    pagePort.postMessage(JSON.stringify(pageCounter.prepare({ method: "global_respond", params: [globalResponse] })))
+    const pageHello = pageRouter.hello()
     pagePort.start()
+    await pageHello
+
+    await pageRouter.request({
+      method: "global_respond",
+      params: [new RpcOk(id, false)]
+    }).await().then(r => r.unwrap())
   }, [id])
 
   return <div>
     <div>
-      {`"${origin}" wants to access "${name}"`}
+      {`Do you want to allow "${origin}" to access "${name}"`}
     </div>
     <button onClick={onAllow}>
       Allow

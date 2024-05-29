@@ -34,7 +34,7 @@ export default function Home() {
     if (port == null)
       return
 
-    open("https://consensus-nonprofit-surgeons-camcorders.trycloudflare.com/#/kv_ask?name=test", "_blank")
+    open(`https://consensus-nonprofit-surgeons-camcorders.trycloudflare.com/#/kv_ask?name=test&origin=${location.origin}`, "_blank")
   }, [port])
 
   return <main className="">
