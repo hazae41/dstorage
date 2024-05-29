@@ -1,48 +1,70 @@
+import { RpcRouter } from "@/libs/jsonrpc"
+import { Messenger } from "@/libs/messenger"
 import { useCallback, useEffect, useState } from "react"
+
+const TARGET = "https://hoping-boundaries-oriented-realtors.trycloudflare.com"
 
 export default function Home() {
   const [iframe, setIframe] = useState<HTMLIFrameElement | null>(null)
-  const [port, setPort] = useState<MessagePort | null>(null)
+
+  const connect = useCallback(async () => {
+    if (iframe == null)
+      return
+    if (iframe.contentWindow == null)
+      return
+
+    const channel = new MessageChannel()
+
+    /**
+     * Wait for our service-worker to load
+     */
+    await navigator.serviceWorker.register("/service_worker.js")
+    const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
+
+    /**
+     * Wait for the iframe to load
+     */
+    await Messenger.hello(iframe.contentWindow, TARGET)
+
+    /**
+     * Connect yall
+     */
+    iframe.contentWindow.postMessage("connect", TARGET, [channel.port2])
+    serviceWorker.postMessage("connect", [channel.port1])
+  }, [iframe])
 
   useEffect(() => {
     if (iframe == null)
       return
-
-    /**
-     * Wait for the iframe and its service-worker to load
-     */
-    setTimeout(async () => {
-      const channel = new MessageChannel()
-
-      /**
-       * Wait for our service-worker to load
-       */
-      await navigator.serviceWorker.register("/service_worker.js")
-      const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
-
-      /**
-       * Connect yall
-       */
-      iframe.contentWindow!.postMessage("hello", "*", [channel.port2])
-      serviceWorker.postMessage("hello", [channel.port1])
-
-      setPort(channel.port1)
-    }, 1000)
-  }, [iframe])
-
-  const onClick = useCallback(() => {
-    if (port == null)
+    if (iframe.contentWindow == null)
       return
+    connect()
+  }, [iframe, connect])
 
-    open(`https://consensus-nonprofit-surgeons-camcorders.trycloudflare.com/#/kv_ask?name=test&origin=${location.origin}`, "_blank")
-  }, [port])
+  const onClick = useCallback(async () => {
+    const window = open(`${TARGET}`, "_blank")
+
+    if (window == null)
+      return
+    await Messenger.hello(window, TARGET)
+
+    const windowChannel = new MessageChannel()
+    const windowPort = windowChannel.port1
+    const windowRouter = new RpcRouter(windowPort)
+
+    window.postMessage("connect", TARGET, [windowChannel.port2])
+
+    const windowHello = windowRouter.hello()
+    windowPort.start()
+    await windowHello
+  }, [])
 
   return <main className="">
     <iframe
       ref={setIframe}
       width={0}
       height={0}
-      src="https://consensus-nonprofit-surgeons-camcorders.trycloudflare.com/iframe.html" />
+      src={`${TARGET}/iframe.html`} />
     <button onClick={onClick}>
       ask
     </button>

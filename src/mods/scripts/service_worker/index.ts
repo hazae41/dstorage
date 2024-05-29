@@ -1,7 +1,7 @@
 import { Database } from "@/libs/indexeddb"
 import { RpcRouter } from "@/libs/jsonrpc"
 import { Future } from "@hazae41/future"
-import { RpcCounter, RpcId, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc"
+import { RpcCounter, RpcId, RpcRequest, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc"
 
 export { }
 
@@ -12,7 +12,8 @@ console.log(location.origin, "service_worker", "starting")
 const database = await Database.openOrThrow("keyval", 1)
 
 const globalCounter = new RpcCounter()
-const globalRequests = new Map<RpcId, Future<RpcResponse>>()
+const globalRequests = new Map<RpcId, RpcRequest<unknown>>()
+const globalResponses = new Map<RpcId, Future<RpcResponse>>()
 
 self.addEventListener("message", async (event) => {
   console.debug(`${event.origin} -> ${location.origin}/service_worker: ${event.data}`)
@@ -27,15 +28,13 @@ self.addEventListener("message", async (event) => {
      * (crossOrigin ->) iframe -> serviceWorker
      */
     if (origin !== location.origin) {
-      const [originPort, iframePort] = event.ports
+      const [originPort] = event.ports
 
       if (originPort == null)
         return
-      if (iframePort == null)
-        return
+
       const originData = { kv: { allowed: false } }
       const originRouter = new RpcRouter(originPort)
-      const iframeRouter = new RpcRouter(iframePort)
 
       originRouter.handlers.set("kv_ask", async (request) => {
         const [name] = request.params as [string]
@@ -47,16 +46,14 @@ self.addEventListener("message", async (event) => {
           return true
         }
 
-        const globalId = globalCounter.id++
-        const globalFuture = new Future<RpcResponse>()
+        const globalRequest = globalCounter.prepare({ method: "kv_ask", params: [name, origin] })
+        const globalResponse = new Future<RpcResponse>()
 
         try {
-          globalRequests.set(globalId, globalFuture)
+          globalRequests.set(globalRequest.id, globalRequest)
+          globalResponses.set(globalRequest.id, globalResponse)
 
-          const url = `/#/kv_ask?id=${globalId}&name=${name}&origin=${origin}`
-          await iframeRouter.request({ method: "open", params: [url] }).await().then(r => r.unwrap())
-
-          const globalResult = await globalFuture.promise.then(r => r.unwrap())
+          const globalResult = await globalResponse.promise.then(r => r.unwrap())
 
           if (!globalResult)
             return false
@@ -68,7 +65,7 @@ self.addEventListener("message", async (event) => {
           originData.kv.allowed = true
           return true
         } finally {
-          globalRequests.delete(globalId)
+          // globalResponses.delete(globalId)
         }
       })
 
@@ -98,10 +95,6 @@ self.addEventListener("message", async (event) => {
       originPort.start()
       await originHello
 
-      const iframeHello = iframeRouter.hello()
-      iframePort.start()
-      await iframeHello
-
       return
     }
 
@@ -116,11 +109,15 @@ self.addEventListener("message", async (event) => {
 
       const pageRouter = new RpcRouter(pagePort)
 
+      pageRouter.handlers.set("global_request", async (request) => {
+        const [origin] = request.params as [string]
+        return globalRequests.get(origin)
+      })
+
       pageRouter.handlers.set("global_respond", async (request) => {
         const [init] = request.params as [RpcResponseInit]
         const response = RpcResponse.from(init)
-        globalRequests.get(response.id)?.resolve(response)
-        return
+        globalResponses.get(response.id)?.resolve(response)
       })
 
       const pageHello = pageRouter.hello()
