@@ -4,7 +4,7 @@ import { Signals } from "@hazae41/signals"
 
 export namespace Messenger {
 
-  export async function ping(target: Window, origin: string, signal = new AbortController().signal) {
+  export async function pingOrThrow(target: Window, origin: string, signal = new AbortController().signal) {
     const resolveOnPingOrPong = new Future<boolean>()
     using rejectOnAbort = Signals.rejectOnAbort(signal)
 
