@@ -148,7 +148,13 @@ You can somewhat mitigate this by encrypting your data using an user-provided pa
 
 ### D-JSON-RPC (UDP-like communication)
 
-Just like JSON-RPC but there is no request-response, only unidirectional JSON messages in the format
+This is used via `postMessage` by pages (and iframes) and service-workers before a `MessagePort` is shared
+
+#### Format
+
+This is like JSON-RPC but there is no request-response
+
+There are only unidirectional JSON messages using the following format
 
 ```tsx
 {
@@ -156,8 +162,6 @@ Just like JSON-RPC but there is no request-response, only unidirectional JSON me
   params: unknown
 }
 ```
-
-This is used via `postMessage` by pages (and iframes) and service-workers
 
 #### ping
 
@@ -220,7 +224,7 @@ The message also contains a `MessagePort` to use as a bidirectional port
 
 ### JSON-RPC (TCP-like communication)
 
-Once a TCP-like communication is established
+Once a TCP-like communication is established via `MessagePort`
 
 #### hello
 
