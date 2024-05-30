@@ -135,14 +135,12 @@ export class RpcRouter {
 
   async #ping() {
     while (true) {
-      const signal = AbortSignal.timeout(1000)
-
-      using resolve = this.#request<void>({ method: "hello" })
-      using reject = Signals.rejectOnAbort(signal)
+      using resolveOnResponse = this.#request<void>({ method: "hello" })
+      const rejectOnTimeout = new Promise((_, err) => setTimeout(err, 1000))
 
       try {
-        await Promise.race([resolve.get(), reject.get()])
-        await new Promise(r => setTimeout(r, 1000))
+        await Promise.race([resolveOnResponse.get(), rejectOnTimeout])
+        await new Promise(ok => setTimeout(ok, 1000))
       } catch (e: unknown) {
         this.rejectOnClose.reject(e)
         return
