@@ -143,3 +143,93 @@ Assuming your data is strongly encrypted, it can't do anything beside deleting t
 If your own website is compromised then the storage is probably available to the attacker, just like any local storage.
 
 You can somewhat mitigate this by encrypting your data using an user-provided password or some WebAuthn authentication.
+
+## Protocols
+
+### D-JSON-RPC (UDP-like communication)
+
+Just like JSON-RPC but there is no request-response, only unidirectional JSON messages in the format
+
+```tsx
+{
+  method: string,
+  params: unknown
+}
+```
+
+This is used via `postMessage` by pages (and iframes) and service-workers
+
+#### ping
+
+Perform a fast bidirectional active-passive handshake to ensure the target is available
+
+```tsx
+{
+  method: "ping"
+}
+```
+
+The connection is ready when both sides received either a `ping` or a `pong`
+
+#### pong
+
+Reply to a `ping`
+
+```tsx
+{
+  method: "pong"
+}
+```
+
+#### connect
+
+Establish a JSON-RPC communication (TCP-like) to the target
+
+```tsx
+{
+  method: "connect"
+}
+```
+
+The message also contains a `MessagePort` to use as a bidirectional port
+
+#### connect2
+
+Establish a JSON-RPC communication (TCP-like) to the page's service-worker
+
+```tsx
+{
+  method: "connect2"
+}
+```
+
+The message also contains a `MessagePort` to use as a bidirectional port
+
+#### connect3
+
+Sent by a page to its service-worker after a `connect2`
+
+```tsx
+{
+  method: "connect3",
+  params: [trueOrigin]
+}
+```
+
+The message also contains a `MessagePort` to use as a bidirectional port
+
+### JSON-RPC (TCP-like communication)
+
+Once a TCP-like communication is established
+
+#### hello
+
+Perform a fast bidirectional active-passive handshake to ensure the target is available
+
+```tsx
+{
+  method: "hello"
+}
+```
+
+The connection is ready when both sides received either a `hello` request or a `hello` response

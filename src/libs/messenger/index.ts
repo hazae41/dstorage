@@ -4,7 +4,7 @@ import { RpcRequestPreinit } from "@hazae41/jsonrpc"
 export namespace Messenger {
 
   export async function hello(target: Window, origin: string, signal = new AbortController().signal) {
-    const resolveOnPong = new Future<boolean>()
+    const resolveOnPingOrPong = new Future<boolean>()
 
     const onMessage = (event: MessageEvent) => {
       if (event.source !== target)
@@ -13,9 +13,15 @@ export namespace Messenger {
         return
       const message = JSON.parse(event.data) as RpcRequestPreinit
 
-      if (message.method !== "pong")
+      if (message.method === "ping") {
+        resolveOnPingOrPong.resolve(true)
         return
-      resolveOnPong.resolve(true)
+      }
+
+      if (message.method === "pong") {
+        resolveOnPingOrPong.resolve(true)
+        return
+      }
     }
 
     try {
@@ -24,7 +30,7 @@ export namespace Messenger {
       while (!signal.aborted) {
         target.postMessage(JSON.stringify({ method: "ping" }), { targetOrigin: origin })
         const resolveOnTimeout = new Promise<boolean>(ok => setTimeout(ok, 100, false))
-        const ponged = await Promise.race([resolveOnPong.promise, resolveOnTimeout])
+        const ponged = await Promise.race([resolveOnPingOrPong.promise, resolveOnTimeout])
 
         if (ponged)
           return
