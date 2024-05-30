@@ -3,7 +3,7 @@ import { RpcRequestPreinit } from "@hazae41/jsonrpc"
 
 export namespace Messenger {
 
-  export async function hello(target: Window, origin: string, signal = new AbortController().signal) {
+  export async function ping(target: Window, origin: string, signal = new AbortController().signal) {
     const resolveOnPingOrPong = new Future<boolean>()
 
     const onMessage = (event: MessageEvent) => {

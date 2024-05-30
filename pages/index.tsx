@@ -46,7 +46,8 @@ export function HashRouter() {
         const response = new Future<RpcResponse>()
         current.current = { request, response }
 
-        window.location.href = `/#/kv_ask?name=${name}`
+        location.assign(`/#/kv_ask?name=${name}`)
+
         return await response.promise.then(r => r.unwrap())
       })
 

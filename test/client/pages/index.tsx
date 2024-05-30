@@ -24,7 +24,7 @@ export default function Home() {
     /**
      * Wait for the iframe to load
      */
-    await Messenger.hello(iframe.contentWindow, TARGET)
+    await Messenger.ping(iframe.contentWindow, TARGET)
 
     /**
      * Connect yall
@@ -46,7 +46,7 @@ export default function Home() {
 
     if (window == null)
       return
-    await Messenger.hello(window, TARGET)
+    await Messenger.ping(window, TARGET)
 
     const windowChannel = new MessageChannel()
     const windowPort = windowChannel.port1
