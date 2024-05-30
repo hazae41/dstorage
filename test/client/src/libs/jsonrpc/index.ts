@@ -14,6 +14,8 @@ export class RpcRouter {
 
   readonly resolveOnHello = new Future<void>()
 
+  #opened = false
+
   constructor(
     readonly port: MessagePort
   ) {
@@ -38,8 +40,12 @@ export class RpcRouter {
   }
 
   async #onRequest(request: RpcRequest<unknown>) {
+    if (!this.#opened)
+      return
+
     if (request.method === "hello") {
       this.resolveOnHello.resolve()
+
       const response = new RpcOk(request.id, undefined)
       const data = JSON.stringify(response)
 
@@ -89,6 +95,8 @@ export class RpcRouter {
   }
 
   async hello() {
+    this.#opened = true
+
     const passive = this.resolveOnHello.promise
     const active = this.request<void>({ method: "hello" })
 
