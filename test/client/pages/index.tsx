@@ -54,9 +54,7 @@ export default function Home() {
 
     window.postMessage(JSON.stringify({ method: "connect" }), TARGET, [windowChannel.port2])
 
-    const windowHello = windowRouter.hello()
-    windowPort.start()
-    await windowHello
+    await windowRouter.hello()
   }, [])
 
   return <main className="">

@@ -1,7 +1,7 @@
 import { RpcRouter } from "@/libs/jsonrpc";
 import { Client } from "@/libs/react/client";
 import { Future } from "@hazae41/future";
-import { RpcOk, RpcRequest, RpcRequestPreinit, RpcResponse } from "@hazae41/jsonrpc";
+import { RpcRequest, RpcRequestPreinit, RpcResponse } from "@hazae41/jsonrpc";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export default function Home() {
@@ -50,9 +50,7 @@ export function HashRouter() {
         return await response.promise.then(r => r.unwrap())
       })
 
-      const originHello = originRouter.hello()
-      originPort.start()
-      await originHello
+      await originRouter.hello()
 
       setOriginRouter(originRouter)
       return
@@ -74,9 +72,7 @@ export function HashRouter() {
 
     serviceWorker.postMessage(JSON.stringify({ method: "connect" }), [pageChannel.port2])
 
-    const pageHello = pageRouter.hello()
-    pagePort.start()
-    await pageHello
+    await pageRouter.hello()
 
     setPageRouter(pageRouter)
   }, [])
@@ -119,9 +115,7 @@ export function KvAsk(props: {
 
     serviceWorker.postMessage(location.origin, [pageChannel.port2])
 
-    const pageHello = pageRouter.hello()
-    pagePort.start()
-    await pageHello
+    await pageRouter.hello()
 
     // await pageRouter.request({
     //   method: "global_respond",
@@ -137,17 +131,15 @@ export function KvAsk(props: {
     const pagePort = pageChannel.port1
     const pageRouter = new RpcRouter(pagePort)
 
-    serviceWorker.postMessage(location.origin, [pageChannel.port2])
+    serviceWorker.postMessage(JSON.stringify({ method: "connect" }), [pageChannel.port2])
 
-    const pageHello = pageRouter.hello()
-    pagePort.start()
-    await pageHello
+    await pageRouter.hello()
 
-    await pageRouter.request({
-      method: "global_respond",
-      params: [new RpcOk(id, false)]
-    }).await().then(r => r.unwrap())
-  }, [id])
+    // await pageRouter.request({
+    //   method: "global_respond",
+    //   params: [new RpcOk(id, false)]
+    // }).await().then(r => r.unwrap())
+  }, [])
 
   return <div>
     <div>

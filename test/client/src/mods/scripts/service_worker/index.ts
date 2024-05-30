@@ -1,3 +1,5 @@
+import { RpcRouter } from "@/libs/jsonrpc"
+import { RpcRequestPreinit } from "@hazae41/jsonrpc"
 
 export { }
 
@@ -5,18 +7,19 @@ declare const self: ServiceWorkerGlobalScope
 
 console.log(location.origin, "service_worker", "starting")
 
-addEventListener("message", (event) => {
+addEventListener("message", async (event) => {
   if (event.origin !== location.origin)
     return
-  console.log(location.origin, "service_worker", event.data)
+  const message = JSON.parse(event.data) as RpcRequestPreinit
 
-  const [originPort] = event.ports
+  if (message.method === "connect") {
+    const [originPort] = event.ports
+    const originRouter = new RpcRouter(originPort)
 
-  originPort.addEventListener("message", (event) => {
-    console.log(location.origin, "service_worker", event.data)
-  })
+    await originRouter.hello()
 
-  originPort.start()
+    return
+  }
 })
 
 console.log(location.origin, "service_worker", "started")

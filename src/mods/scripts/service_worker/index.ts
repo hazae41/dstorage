@@ -48,9 +48,7 @@ self.addEventListener("message", async (event) => {
       globalResponses.get(response.id)?.resolve(response)
     })
 
-    const pageHello = pageRouter.hello()
-    pagePort.start()
-    await pageHello
+    await pageRouter.hello()
 
     return
   }
@@ -126,9 +124,7 @@ self.addEventListener("message", async (event) => {
       return value
     })
 
-    const originHello = originRouter.hello()
-    originPort.start()
-    await originHello
+    await originRouter.hello()
 
     return
   }

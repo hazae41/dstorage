@@ -100,6 +100,8 @@ export class RpcRouter {
     const passive = this.resolveOnHello.promise
     const active = this.request<void>({ method: "hello" })
 
+    this.port.start()
+
     try {
       await Promise.race([passive, active.get()])
     } finally {
