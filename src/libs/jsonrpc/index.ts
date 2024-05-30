@@ -14,7 +14,7 @@ export class RpcRouter {
 
   readonly resolveOnHello = new Future<void>()
 
-  #opened = false
+  #ready = false
 
   constructor(
     readonly port: MessagePort
@@ -40,7 +40,7 @@ export class RpcRouter {
   }
 
   async #onRequest(request: RpcRequest<unknown>) {
-    if (!this.#opened)
+    if (!this.#ready)
       return
 
     if (request.method === "hello") {
@@ -95,7 +95,7 @@ export class RpcRouter {
   }
 
   async hello() {
-    this.#opened = true
+    this.#ready = true
 
     const passive = this.resolveOnHello.promise
     const active = this.request<void>({ method: "hello" })
