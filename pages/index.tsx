@@ -24,6 +24,8 @@ export function HashRouter() {
   const onMessage = useCallback(async (event: MessageEvent) => {
     if (event.origin === location.origin)
       return
+    if (typeof event.data !== "string")
+      return
     const message = JSON.parse(event.data) as RpcRequestPreinit
 
     if (message.method === "ping") {

@@ -11,6 +11,8 @@ export namespace Messenger {
         return
       if (event.origin !== origin)
         return
+      if (typeof event.data !== "string")
+        return
       const message = JSON.parse(event.data) as RpcRequestPreinit
 
       if (message.method === "ping") {

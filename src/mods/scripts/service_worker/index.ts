@@ -16,10 +16,9 @@ const globalRequests = new Map<RpcId, RpcRequest<unknown>>()
 const globalResponses = new Map<RpcId, Future<RpcResponse>>()
 
 self.addEventListener("message", async (event) => {
-  /**
-   * iframe,page -> serviceWorker
-   */
   if (event.origin !== location.origin)
+    return
+  if (typeof event.data !== "string")
     return
 
   const message = JSON.parse(event.data) as RpcRequestPreinit

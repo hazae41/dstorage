@@ -10,6 +10,8 @@ const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 addEventListener("message", async (event) => {
   if (event.origin === location.origin)
     return
+  if (typeof event.data !== "string")
+    return
   const message = JSON.parse(event.data) as RpcRequestPreinit
 
   console.debug(`${event.origin} -> ${location.origin}/iframe: ${event.data}`)
