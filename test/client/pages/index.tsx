@@ -2,7 +2,7 @@ import { RpcRouter } from "@/libs/jsonrpc"
 import { Messenger } from "@/libs/messenger"
 import { useCallback, useEffect, useState } from "react"
 
-const TARGET = "https://hoping-boundaries-oriented-realtors.trycloudflare.com"
+const TARGET = "https://auction-banners-acoustic-princeton.trycloudflare.com"
 
 export default function Home() {
   const [iframe, setIframe] = useState<HTMLIFrameElement | null>(null)
@@ -54,7 +54,7 @@ export default function Home() {
 
     window.postMessage(JSON.stringify({ method: "connect" }), TARGET, [windowChannel.port2])
 
-    await windowRouter.hello()
+    await windowRouter.helloOrThrow()
   }, [])
 
   return <main className="">

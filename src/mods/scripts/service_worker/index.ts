@@ -48,7 +48,7 @@ self.addEventListener("message", async (event) => {
       globalResponses.get(response.id)?.resolve(response)
     })
 
-    await pageRouter.hello()
+    await pageRouter.helloOrThrow()
 
     return
   }
@@ -124,7 +124,7 @@ self.addEventListener("message", async (event) => {
       return value
     })
 
-    await originRouter.hello()
+    await originRouter.helloOrThrow()
 
     return
   }

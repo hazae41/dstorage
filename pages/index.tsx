@@ -51,7 +51,7 @@ export function HashRouter() {
         return await response.promise.then(r => r.unwrap())
       })
 
-      await originRouter.hello()
+      await originRouter.helloOrThrow()
 
       setOriginRouter(originRouter)
       return
@@ -73,7 +73,7 @@ export function HashRouter() {
 
     serviceWorker.postMessage(JSON.stringify({ method: "connect" }), [pageChannel.port2])
 
-    await pageRouter.hello()
+    await pageRouter.helloOrThrow()
 
     setPageRouter(pageRouter)
   }, [])
@@ -116,7 +116,7 @@ export function KvAsk(props: {
 
     serviceWorker.postMessage(location.origin, [pageChannel.port2])
 
-    await pageRouter.hello()
+    await pageRouter.helloOrThrow()
 
     // await pageRouter.request({
     //   method: "global_respond",
@@ -134,7 +134,7 @@ export function KvAsk(props: {
 
     serviceWorker.postMessage(JSON.stringify({ method: "connect" }), [pageChannel.port2])
 
-    await pageRouter.hello()
+    await pageRouter.helloOrThrow()
 
     // await pageRouter.request({
     //   method: "global_respond",

@@ -16,7 +16,7 @@ addEventListener("message", async (event) => {
     const [originPort] = event.ports
     const originRouter = new RpcRouter(originPort)
 
-    await originRouter.hello()
+    await originRouter.helloOrThrow()
 
     return
   }
