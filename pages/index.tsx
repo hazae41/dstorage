@@ -72,7 +72,7 @@ export function HashRouter() {
     const pagePort = pageChannel.port1
     const pageRouter = new RpcRouter(pagePort)
 
-    serviceWorker.postMessage(location.origin, [pageChannel.port2])
+    serviceWorker.postMessage(JSON.stringify({ method: "connect" }), [pageChannel.port2])
 
     const pageHello = pageRouter.hello()
     pagePort.start()

@@ -26,111 +26,111 @@ self.addEventListener("message", async (event) => {
 
   console.debug(`${event.origin} -> ${location.origin}/service_worker: ${event.data}`)
 
+  /**
+   * iframe -> serviceWorker
+   */
+  if (message.method === "connect") {
+    const [pagePort] = event.ports
+
+    if (pagePort == null)
+      return
+
+    const pageRouter = new RpcRouter(pagePort)
+
+    pageRouter.handlers.set("global_request", async (request) => {
+      const [origin] = request.params as [string]
+      return globalRequests.get(origin)
+    })
+
+    pageRouter.handlers.set("global_respond", async (request) => {
+      const [init] = request.params as [RpcResponseInit]
+      const response = RpcResponse.from(init)
+      globalResponses.get(response.id)?.resolve(response)
+    })
+
+    const pageHello = pageRouter.hello()
+    pagePort.start()
+    await pageHello
+
+    return
+  }
+
+  /**
+   * (crossOrigin ->) iframe -> serviceWorker
+   */
   if (message.method === "connect3") {
     const [origin] = message.params as [string]
 
-    /**
-     * (crossOrigin ->) iframe -> serviceWorker
-     */
-    if (origin !== location.origin) {
-      const [originPort] = event.ports
+    if (origin == null)
+      return
+    const [originPort] = event.ports
 
-      if (originPort == null)
-        return
+    if (originPort == null)
+      return
 
-      const originData = { kv: { allowed: false } }
-      const originRouter = new RpcRouter(originPort)
+    const originData = { kv: { allowed: false } }
+    const originRouter = new RpcRouter(originPort)
 
-      originRouter.handlers.set("kv_ask", async (request) => {
-        const [name] = request.params as [string]
+    originRouter.handlers.set("kv_ask", async (request) => {
+      const [name] = request.params as [string]
 
-        const current = await database.getOrThrow(btoa(`${name}#${origin}`))
+      const current = await database.getOrThrow(btoa(`${name}#${origin}`))
 
-        if (current === true) {
-          originData.kv.allowed = true
-          return true
-        }
+      if (current === true) {
+        originData.kv.allowed = true
+        return true
+      }
 
-        const globalRequest = globalCounter.prepare({ method: "kv_ask", params: [name, origin] })
-        const globalResponse = new Future<RpcResponse>()
+      const globalRequest = globalCounter.prepare({ method: "kv_ask", params: [name, origin] })
+      const globalResponse = new Future<RpcResponse>()
 
-        try {
-          globalRequests.set(globalRequest.id, globalRequest)
-          globalResponses.set(globalRequest.id, globalResponse)
+      try {
+        globalRequests.set(globalRequest.id, globalRequest)
+        globalResponses.set(globalRequest.id, globalResponse)
 
-          const globalResult = await globalResponse.promise.then(r => r.unwrap())
+        const globalResult = await globalResponse.promise.then(r => r.unwrap())
 
-          if (!globalResult)
-            return false
+        if (!globalResult)
+          return false
 
-          console.log("allowing", name, origin)
+        console.log("allowing", name, origin)
 
-          await database.setOrThrow(btoa(`${name}#${origin}`), true)
+        await database.setOrThrow(btoa(`${name}#${origin}`), true)
 
-          originData.kv.allowed = true
-          return true
-        } finally {
-          // globalResponses.delete(globalId)
-        }
-      })
+        originData.kv.allowed = true
+        return true
+      } finally {
+        // globalResponses.delete(globalId)
+      }
+    })
 
-      originRouter.handlers.set("kv_set", async (request) => {
-        const [name, key, value] = request.params as [string, string, unknown]
+    originRouter.handlers.set("kv_set", async (request) => {
+      const [name, key, value] = request.params as [string, string, unknown]
 
-        if (!originData.kv.allowed)
-          throw new Error("Not allowed")
+      if (!originData.kv.allowed)
+        throw new Error("Not allowed")
 
-        await database.setOrThrow(`${name}#${key}`, value)
-
-        return
-      })
-
-      originRouter.handlers.set("kv_get", async (request) => {
-        const [name, key] = request.params as [string, string]
-
-        if (!originData.kv.allowed)
-          throw new Error("Not allowed")
-
-        const value = await database.getOrThrow(`${name}#${key}`)
-
-        return value
-      })
-
-      const originHello = originRouter.hello()
-      originPort.start()
-      await originHello
+      await database.setOrThrow(`${name}#${key}`, value)
 
       return
-    }
+    })
 
-    /**
-     * page -> serviceWorker
-     */
-    if (origin === location.origin) {
-      const [pagePort] = event.ports
+    originRouter.handlers.set("kv_get", async (request) => {
+      const [name, key] = request.params as [string, string]
 
-      if (pagePort == null)
-        return
+      if (!originData.kv.allowed)
+        throw new Error("Not allowed")
 
-      const pageRouter = new RpcRouter(pagePort)
+      const value = await database.getOrThrow(`${name}#${key}`)
 
-      pageRouter.handlers.set("global_request", async (request) => {
-        const [origin] = request.params as [string]
-        return globalRequests.get(origin)
-      })
+      return value
+    })
 
-      pageRouter.handlers.set("global_respond", async (request) => {
-        const [init] = request.params as [RpcResponseInit]
-        const response = RpcResponse.from(init)
-        globalResponses.get(response.id)?.resolve(response)
-      })
+    const originHello = originRouter.hello()
+    originPort.start()
+    await originHello
 
-      const pageHello = pageRouter.hello()
-      pagePort.start()
-      await pageHello
-
-      return
-    }
+    return
   }
 })
 
