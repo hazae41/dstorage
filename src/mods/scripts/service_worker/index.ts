@@ -1,7 +1,7 @@
 import { Database } from "@/libs/indexeddb"
 import { RpcRouter } from "@/libs/jsonrpc"
 import { Future } from "@hazae41/future"
-import { RpcCounter, RpcId, RpcRequest, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc"
+import { RpcCounter, RpcId, RpcRequest, RpcRequestPreinit, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc"
 
 export { }
 
@@ -16,13 +16,18 @@ const globalRequests = new Map<RpcId, RpcRequest<unknown>>()
 const globalResponses = new Map<RpcId, Future<RpcResponse>>()
 
 self.addEventListener("message", async (event) => {
-  console.debug(`${event.origin} -> ${location.origin}/service_worker: ${event.data}`)
-
   /**
    * iframe,page -> serviceWorker
    */
-  if (event.origin === location.origin) {
-    const origin = event.data
+  if (event.origin !== location.origin)
+    return
+
+  const message = JSON.parse(event.data) as RpcRequestPreinit
+
+  console.debug(`${event.origin} -> ${location.origin}/service_worker: ${event.data}`)
+
+  if (message.method === "connect3") {
+    const [origin] = message.params as [string]
 
     /**
      * (crossOrigin ->) iframe -> serviceWorker

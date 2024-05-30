@@ -1,7 +1,7 @@
 import { RpcRouter } from "@/libs/jsonrpc";
 import { Client } from "@/libs/react/client";
 import { Future } from "@hazae41/future";
-import { RpcOk, RpcRequest, RpcResponse } from "@hazae41/jsonrpc";
+import { RpcOk, RpcRequest, RpcRequestPreinit, RpcResponse } from "@hazae41/jsonrpc";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export default function Home() {
@@ -22,12 +22,18 @@ export function HashRouter() {
   }>()
 
   const onMessage = useCallback(async (event: MessageEvent) => {
-    if (event.data === "ping") {
-      event.source?.postMessage("pong", { targetOrigin: event.origin })
+    if (event.origin === location.origin)
+      return
+    const message = JSON.parse(event.data) as RpcRequestPreinit
+
+    if (message.method === "ping") {
+      if (event.source == null)
+        return
+      event.source.postMessage(JSON.stringify({ method: "pong" }), { targetOrigin: event.origin })
       return
     }
 
-    if (event.data === "connect") {
+    if (message.method === "connect") {
       const [originPort] = event.ports
 
       if (originPort == null)
@@ -117,11 +123,11 @@ export function KvAsk(props: {
     pagePort.start()
     await pageHello
 
-    await pageRouter.request({
-      method: "global_respond",
-      params: [new RpcOk(id, true)]
-    }).await().then(r => r.unwrap())
-  }, [id])
+    // await pageRouter.request({
+    //   method: "global_respond",
+    //   params: [new RpcOk(id, true)]
+    // }).await().then(r => r.unwrap())
+  }, [])
 
   const onReject = useCallback(async () => {
     await navigator.serviceWorker.register("/service_worker.js")

@@ -29,8 +29,8 @@ export default function Home() {
     /**
      * Connect yall
      */
-    iframe.contentWindow.postMessage("connect", TARGET, [channel.port2])
-    serviceWorker.postMessage("connect", [channel.port1])
+    iframe.contentWindow.postMessage(JSON.stringify({ method: "connect2" }), TARGET, [channel.port2])
+    serviceWorker.postMessage(JSON.stringify({ method: "connect" }), [channel.port1])
   }, [iframe])
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export default function Home() {
     const windowPort = windowChannel.port1
     const windowRouter = new RpcRouter(windowPort)
 
-    window.postMessage("connect", TARGET, [windowChannel.port2])
+    window.postMessage(JSON.stringify({ method: "connect" }), TARGET, [windowChannel.port2])
 
     const windowHello = windowRouter.hello()
     windowPort.start()

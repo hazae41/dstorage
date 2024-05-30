@@ -5,7 +5,9 @@ declare const self: ServiceWorkerGlobalScope
 
 console.log(location.origin, "service_worker", "starting")
 
-self.addEventListener("message", (event) => {
+addEventListener("message", (event) => {
+  if (event.origin !== location.origin)
+    return
   console.log(location.origin, "service_worker", event.data)
 
   const [originPort] = event.ports
