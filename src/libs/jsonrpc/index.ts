@@ -1,25 +1,11 @@
 import { Disposer } from "@hazae41/disposer";
 import { Future } from "@hazae41/future";
 import { RpcCounter, RpcErr, RpcError, RpcId, RpcMethodNotFoundError, RpcOk, RpcRequest, RpcRequestInit, RpcRequestPreinit, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc";
+import { Signals } from "@hazae41/signals";
 
 export type RpcMessageInit =
   | RpcRequestInit
   | RpcResponseInit
-
-export namespace Signals {
-
-  export function rejectOnAbort(signal: AbortSignal) {
-    const rejectOnAbort = new Future<never>()
-
-    const onAbort = () => rejectOnAbort.reject(new Error("Aborted", { cause: signal.reason }))
-    const onClean = () => signal.removeEventListener("abort", onAbort)
-
-    signal.addEventListener("abort", onAbort, { passive: true })
-
-    return new Disposer(rejectOnAbort.promise, onClean)
-  }
-
-}
 
 export class RpcRouter {
 

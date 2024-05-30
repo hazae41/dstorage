@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@hazae41/jsonrpc": "^1.0.5",
+    "@hazae41/signals": "^1.0.1",
     "next": "14.2.3",
     "react": "^18",
     "react-dom": "^18"
