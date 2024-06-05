@@ -165,7 +165,9 @@ There are only unidirectional JSON messages using the following format
 
 #### ping
 
-Perform a unidirectional ping to ensure the target is available
+Perform a unidirectional ping to ensure the target is available for a `connect` or `connect2`
+
+Only used for page-to-page connection as page-to-service-worker can use `serviceWorker.ready` heuristic
 
 ```tsx
 {
