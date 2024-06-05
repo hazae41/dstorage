@@ -21,24 +21,33 @@ export class RpcRouter {
   constructor(
     readonly port: MessagePort
   ) {
-    port.addEventListener("message", async (event) => {
-      if (typeof event.data !== "string")
-        return
-      const message = JSON.parse(event.data) as RpcMessageInit
+    const onMessage = this.#onMessage.bind(this)
 
-      console.log(message)
+    port.addEventListener("message", onMessage, { passive: true })
 
-      if (typeof message !== "object")
-        return
-
-      if ("method" in message) {
-        const request = RpcRequest.from(message)
-        this.#onRequest(request).catch(console.error)
-      } else {
-        const response = RpcResponse.from(message)
-        this.requests.get(response.id)?.resolve(response)
-      }
+    this.rejectOnClose.promise.then(() => {
+      port.removeEventListener("message", onMessage)
+      port.close()
     })
+  }
+
+  async #onMessage(event: MessageEvent) {
+    if (typeof event.data !== "string")
+      return
+    const message = JSON.parse(event.data) as RpcMessageInit
+
+    console.log(message)
+
+    if (typeof message !== "object")
+      return
+
+    if ("method" in message) {
+      const request = RpcRequest.from(message)
+      this.#onRequest(request).catch(console.error)
+    } else {
+      const response = RpcResponse.from(message)
+      this.requests.get(response.id)?.resolve(response)
+    }
   }
 
   async #onRequest(request: RpcRequest<unknown>) {
