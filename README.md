@@ -165,7 +165,7 @@ There are only unidirectional JSON messages using the following format
 
 #### ping
 
-Perform a fast bidirectional active-passive handshake to ensure the target is available
+Perform a unidirectional handshake to ensure the target is available
 
 ```tsx
 {
