@@ -143,34 +143,3 @@ export class RpcRouter {
   }
 
 }
-
-export class WindowMessenger {
-
-  constructor(
-    readonly window: Window,
-    readonly origin: string
-  ) { }
-
-  async connectOrThrow(method: string, signal = new AbortController().signal) {
-    const channel = new MessageChannel()
-
-    const selfPort = channel.port1
-    const targetPort = channel.port2
-
-    const router = new RpcRouter(selfPort)
-
-    while (!signal.aborted) {
-      try {
-        const hello = router.helloOrThrow(Signals.merge(signal, AbortSignal.timeout(100)))
-        this.window.postMessage(JSON.stringify({ method }), this.origin, [targetPort])
-        await hello
-
-        return router
-      } catch { }
-    }
-
-    signal.throwIfAborted()
-    throw new Error()
-  }
-
-}
