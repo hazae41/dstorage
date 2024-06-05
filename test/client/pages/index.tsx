@@ -1,5 +1,5 @@
 import { RpcRouter } from "@/libs/jsonrpc"
-import { Messenger } from "@/libs/messenger"
+import { WindowMessenger } from "@/libs/messenger"
 import { useCallback, useEffect, useState } from "react"
 
 const TARGET = "https://auction-banners-acoustic-princeton.trycloudflare.com"
@@ -12,8 +12,9 @@ export default function Home() {
       return
     if (iframe.contentWindow == null)
       return
-
     const channel = new MessageChannel()
+
+    const iframeMessenger = new WindowMessenger(iframe.contentWindow, TARGET)
 
     /**
      * Wait for our service-worker to load
@@ -24,13 +25,13 @@ export default function Home() {
     /**
      * Wait for the iframe to load
      */
-    await Messenger.pingOrThrow(iframe.contentWindow, TARGET)
+    await iframeMessenger.pingOrThrow()
 
     /**
      * Connect yall
      */
-    iframe.contentWindow.postMessage(JSON.stringify({ method: "connect2" }), TARGET, [channel.port2])
-    serviceWorker.postMessage(JSON.stringify({ method: "connect" }), [channel.port1])
+    iframe.contentWindow.postMessage(JSON.stringify({ method: "connect2" }), TARGET, [channel.port1])
+    serviceWorker.postMessage(JSON.stringify({ method: "connect" }), [channel.port2])
   }, [iframe])
 
   useEffect(() => {
@@ -42,17 +43,17 @@ export default function Home() {
   }, [iframe, connect])
 
   const onClick = useCallback(async () => {
+    const channel = new MessageChannel()
     const window = open(`${TARGET}`, "_blank")
 
     if (window == null)
       return
-    await Messenger.pingOrThrow(window, TARGET)
+    const windowMessenger = new WindowMessenger(window, TARGET)
+    const windowRouter = new RpcRouter(channel.port1)
 
-    const windowChannel = new MessageChannel()
-    const windowPort = windowChannel.port1
-    const windowRouter = new RpcRouter(windowPort)
+    await windowMessenger.pingOrThrow()
 
-    window.postMessage(JSON.stringify({ method: "connect" }), TARGET, [windowChannel.port2])
+    window.postMessage(JSON.stringify({ method: "connect" }), TARGET, [channel.port2])
 
     await windowRouter.helloOrThrow()
   }, [])
