@@ -91,15 +91,11 @@ This is a key-value storage using WebAuthn.
 This will open a page requiring user confirmation.
 
 ```tsx
-const data = ["webAuthn.kv.set", key, value]
+function webAuthn_kv_set(name: string, key: string, value: Nullable<Uint8Array>): void
 ```
 
 ```tsx
-const data = ["webAuthn.kv.get", key]
-```
-
-```tsx
-const data = ["webAuthn.kv.delete", key]
+function webAuthn_kv_get(name: string, key: string): unknown
 ```
 
 ## Limitations
@@ -146,7 +142,7 @@ You can somewhat mitigate this by encrypting your data using an user-provided pa
 
 ## Protocols
 
-### D-JSON-RPC (UDP-like communication)
+### D-JSON-RPC (UDP-like multicast-like communication)
 
 This is used via `postMessage` by pages (and iframes) and service-workers before a `MessagePort` is shared
 
@@ -154,7 +150,7 @@ This is used via `postMessage` by pages (and iframes) and service-workers before
 
 This is like JSON-RPC but there is no request-response
 
-There are only unidirectional JSON messages using the following format
+There are only JSON messages using the following format
 
 ```tsx
 {
@@ -165,9 +161,9 @@ There are only unidirectional JSON messages using the following format
 
 #### ping
 
-Perform a unidirectional ping to ensure the target is available for a `connect` or `connect2`
+Perform a ping to ensure the target is available for a `connect` or `connect2`
 
-Only used for page-to-page connection as page-to-service-worker can use `serviceWorker.ready` heuristic
+Only used for page targets as for service-worker targets we can use `serviceWorker.ready` heuristic
 
 ```tsx
 {
@@ -176,6 +172,14 @@ Only used for page-to-page connection as page-to-service-worker can use `service
 ```
 
 The target is available if a `pong` is received
+
+- Why use `ping` when there is already `hello`?
+
+A `ping` can be sent from/to a middlebox whereas `hello` is always sent end-to-end 
+
+- Why don't use a `connected` or `connected2` reply?
+
+Because all communication here is multicast-like so a `connected` may trigger others
 
 #### pong
 
@@ -189,7 +193,7 @@ Reply to a `ping`
 
 #### connect
 
-Establish a JSON-RPC communication (TCP-like) to the target
+Establish an end-to-end communication to the target
 
 ```tsx
 {
@@ -201,7 +205,7 @@ The message also contains a `MessagePort` to use as a bidirectional port
 
 #### connect2
 
-Establish a JSON-RPC communication (TCP-like) to the page's service-worker
+Establish an end-to-end communication to the target's service-worker
 
 ```tsx
 {
@@ -224,9 +228,9 @@ Sent by a page to its service-worker after a `connect2`
 
 The message also contains a `MessagePort` to use as a bidirectional port
 
-### JSON-RPC (TCP-like communication)
+### JSON-RPC (TCP-like unicast-like communication)
 
-Once a TCP-like communication is established via `MessagePort`
+Once a end-to-end communication is established via `MessagePort`
 
 #### hello
 
