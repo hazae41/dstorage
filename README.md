@@ -165,7 +165,7 @@ There are only unidirectional JSON messages using the following format
 
 #### ping
 
-Perform a unidirectional handshake to ensure the target is available
+Perform a unidirectional ping to ensure the target is available
 
 ```tsx
 {
@@ -173,7 +173,7 @@ Perform a unidirectional handshake to ensure the target is available
 }
 ```
 
-The connection is ready when both sides received either a `ping` or a `pong`
+The target is available if a `pong` is received
 
 #### pong
 

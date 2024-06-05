@@ -5,7 +5,7 @@ import { Signals } from "@hazae41/signals"
 export namespace Messenger {
 
   export async function pingOrThrow(target: Window, origin: string, signal = new AbortController().signal) {
-    const resolveOnPingOrPong = new Future<boolean>()
+    const resolveOrPong = new Future<boolean>()
     using rejectOnAbort = Signals.rejectOnAbort(signal)
 
     const onMessage = (event: MessageEvent) => {
@@ -17,13 +17,8 @@ export namespace Messenger {
         return
       const message = JSON.parse(event.data) as RpcRequestPreinit
 
-      if (message.method === "ping") {
-        resolveOnPingOrPong.resolve(true)
-        return
-      }
-
       if (message.method === "pong") {
-        resolveOnPingOrPong.resolve(true)
+        resolveOrPong.resolve(true)
         return
       }
     }
@@ -34,7 +29,7 @@ export namespace Messenger {
       while (!signal.aborted) {
         target.postMessage(JSON.stringify({ method: "ping" }), { targetOrigin: origin })
         const resolveOnTimeout = new Promise<boolean>(ok => setTimeout(ok, 100, false))
-        const ponged = await Promise.race([resolveOnPingOrPong.promise, resolveOnTimeout, rejectOnAbort.get()])
+        const ponged = await Promise.race([resolveOrPong.promise, resolveOnTimeout, rejectOnAbort.get()])
 
         if (ponged)
           return
