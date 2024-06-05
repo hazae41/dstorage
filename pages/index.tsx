@@ -13,7 +13,7 @@ export default function Home() {
 export function HashRouter() {
   const url = new URL(location.hash.slice(1), location.origin)
 
-  const [originRouter, setOriginRouter] = useState<RpcRouter | null>(null)
+  const [parentRouter, setParentRouter] = useState<RpcRouter | null>(null)
   const [backgroundRouter, setBackgroundRouter] = useState<RpcRouter | null>(null)
 
   const current = useRef<{
@@ -36,13 +36,13 @@ export function HashRouter() {
     }
 
     if (message.method === "connect") {
-      const [originPort] = event.ports
+      const [parentPort] = event.ports
 
-      if (originPort == null)
+      if (parentPort == null)
         return
-      const originRouter = new RpcRouter(originPort)
+      const parentRouter = new RpcRouter(parentPort)
 
-      originRouter.handlers.set("kv_ask", async (request) => {
+      parentRouter.handlers.set("kv_ask", async (request) => {
         const [name] = request.params
 
         const response = new Future<RpcResponse>()
@@ -53,9 +53,9 @@ export function HashRouter() {
         return await response.promise.then(r => r.unwrap())
       })
 
-      await originRouter.helloOrThrow(AbortSignal.timeout(1000))
+      await parentRouter.helloOrThrow(AbortSignal.timeout(1000))
 
-      setOriginRouter(originRouter)
+      setParentRouter(parentRouter)
       return
     }
   }, [])
@@ -84,7 +84,7 @@ export function HashRouter() {
     connect()
   }, [connect])
 
-  if (originRouter == null)
+  if (parentRouter == null)
     return null
   if (backgroundRouter == null)
     return null
@@ -94,7 +94,7 @@ export function HashRouter() {
 
     return <KvAsk
       name={name}
-      originRouter={originRouter}
+      originRouter={parentRouter}
       pageRouter={backgroundRouter} />
   }
 
