@@ -18,7 +18,7 @@ addEventListener("message", async (event) => {
     const [originPort] = event.ports
     const originRouter = new RpcRouter(originPort)
 
-    await originRouter.helloOrThrow()
+    await originRouter.helloOrThrow(AbortSignal.timeout(1000))
 
     return
   }

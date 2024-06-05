@@ -16,15 +16,12 @@ export class RpcRouter {
   readonly resolveOnHello = new Future<void>()
   readonly rejectOnClose = new Future<never>()
 
-  #ready = false
-
   constructor(
     readonly port: MessagePort
   ) {
     const onMessage = this.#onMessage.bind(this)
 
     port.addEventListener("message", onMessage, { passive: true })
-    port.start()
 
     this.rejectOnClose.promise.then(() => {
       port.removeEventListener("message", onMessage)
@@ -52,9 +49,6 @@ export class RpcRouter {
   }
 
   async #onRequest(request: RpcRequest<unknown>) {
-    if (!this.#ready)
-      return
-
     if (request.method === "hello") {
       this.resolveOnHello.resolve()
 
@@ -116,7 +110,7 @@ export class RpcRouter {
   }
 
   async helloOrThrow(signal = new AbortController().signal) {
-    this.#ready = true
+    this.port.start()
 
     const resolveOnPassive = this.resolveOnHello.promise
     using resolveOnActive = this.#request<void>({ method: "hello" })

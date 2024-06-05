@@ -14,7 +14,7 @@ export function HashRouter() {
   const url = new URL(location.hash.slice(1), location.origin)
 
   const [originRouter, setOriginRouter] = useState<RpcRouter | null>(null)
-  const [pageRouter, setPageRouter] = useState<RpcRouter | null>(null)
+  const [backgroundRouter, setBackgroundRouter] = useState<RpcRouter | null>(null)
 
   const current = useRef<{
     readonly request: RpcRequest<unknown>,
@@ -66,18 +66,18 @@ export function HashRouter() {
   }, [onMessage])
 
   const connect = useCallback(async () => {
+    const channel = new MessageChannel()
+
     await navigator.serviceWorker.register("/service_worker.js")
     const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 
-    const pageChannel = new MessageChannel()
-    const pagePort = pageChannel.port1
-    const pageRouter = new RpcRouter(pagePort)
+    const backgroundRouter = new RpcRouter(channel.port1)
 
-    serviceWorker.postMessage(JSON.stringify({ method: "connect" }), [pageChannel.port2])
+    serviceWorker.postMessage(JSON.stringify({ method: "connect" }), [channel.port2])
 
-    await pageRouter.helloOrThrow(AbortSignal.timeout(1000))
+    await backgroundRouter.helloOrThrow(AbortSignal.timeout(1000))
 
-    setPageRouter(pageRouter)
+    setBackgroundRouter(backgroundRouter)
   }, [])
 
   useEffect(() => {
@@ -86,7 +86,7 @@ export function HashRouter() {
 
   if (originRouter == null)
     return null
-  if (pageRouter == null)
+  if (backgroundRouter == null)
     return null
 
   if (url.pathname === "/kv_ask") {
@@ -95,7 +95,7 @@ export function HashRouter() {
     return <KvAsk
       name={name}
       originRouter={originRouter}
-      pageRouter={pageRouter} />
+      pageRouter={backgroundRouter} />
   }
 
   return null
@@ -109,40 +109,11 @@ export function KvAsk(props: {
   const { name, originRouter, pageRouter } = props
 
   const onAllow = useCallback(async () => {
-    // await navigator.serviceWorker.register("/service_worker.js")
-    // const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 
-    // const pageChannel = new MessageChannel()
-    // const pagePort = pageChannel.port1
-    // const pageRouter = new RpcRouter(pagePort)
-
-    // serviceWorker.postMessage(location.origin, [pageChannel.port2])
-
-
-    // await pageRouter.helloOrThrow(AbortSignal.timeout(1000))
-
-    // await pageRouter.request({
-    //   method: "global_respond",
-    //   params: [new RpcOk(id, true)]
-    // }).await().then(r => r.unwrap())
   }, [])
 
   const onReject = useCallback(async () => {
-    // await navigator.serviceWorker.register("/service_worker.js")
-    // const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 
-    // const pageChannel = new MessageChannel()
-    // const pagePort = pageChannel.port1
-    // const pageRouter = new RpcRouter(pagePort)
-
-    // serviceWorker.postMessage(JSON.stringify({ method: "connect" }), [pageChannel.port2])
-
-    // await pageRouter.helloOrThrow(AbortSignal.timeout(1000))
-
-    // await pageRouter.request({
-    //   method: "global_respond",
-    //   params: [new RpcOk(id, false)]
-    // }).await().then(r => r.unwrap())
   }, [])
 
   return <div>

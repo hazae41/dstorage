@@ -55,7 +55,7 @@ export default function Home() {
 
     window.postMessage(JSON.stringify({ method: "connect" }), TARGET, [channel.port2])
 
-    await windowRouter.helloOrThrow()
+    await windowRouter.helloOrThrow(AbortSignal.timeout(1000))
   }, [])
 
   return <main className="">
