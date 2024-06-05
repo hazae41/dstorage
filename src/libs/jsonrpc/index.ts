@@ -24,6 +24,7 @@ export class RpcRouter {
     const onMessage = this.#onMessage.bind(this)
 
     port.addEventListener("message", onMessage, { passive: true })
+    port.start()
 
     this.rejectOnClose.promise.then(() => {
       port.removeEventListener("message", onMessage)
