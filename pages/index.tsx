@@ -53,7 +53,7 @@ export function HashRouter() {
         return await response.promise.then(r => r.unwrap())
       })
 
-      await originRouter.helloOrThrow()
+      await originRouter.helloOrThrow(AbortSignal.timeout(1000))
 
       setOriginRouter(originRouter)
       return
@@ -75,7 +75,7 @@ export function HashRouter() {
 
     serviceWorker.postMessage(JSON.stringify({ method: "connect" }), [pageChannel.port2])
 
-    await pageRouter.helloOrThrow()
+    await pageRouter.helloOrThrow(AbortSignal.timeout(1000))
 
     setPageRouter(pageRouter)
   }, [])
@@ -109,16 +109,17 @@ export function KvAsk(props: {
   const { name, originRouter, pageRouter } = props
 
   const onAllow = useCallback(async () => {
-    await navigator.serviceWorker.register("/service_worker.js")
-    const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
+    // await navigator.serviceWorker.register("/service_worker.js")
+    // const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 
-    const pageChannel = new MessageChannel()
-    const pagePort = pageChannel.port1
-    const pageRouter = new RpcRouter(pagePort)
+    // const pageChannel = new MessageChannel()
+    // const pagePort = pageChannel.port1
+    // const pageRouter = new RpcRouter(pagePort)
 
-    serviceWorker.postMessage(location.origin, [pageChannel.port2])
+    // serviceWorker.postMessage(location.origin, [pageChannel.port2])
 
-    await pageRouter.helloOrThrow()
+
+    // await pageRouter.helloOrThrow(AbortSignal.timeout(1000))
 
     // await pageRouter.request({
     //   method: "global_respond",
@@ -127,16 +128,16 @@ export function KvAsk(props: {
   }, [])
 
   const onReject = useCallback(async () => {
-    await navigator.serviceWorker.register("/service_worker.js")
-    const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
+    // await navigator.serviceWorker.register("/service_worker.js")
+    // const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 
-    const pageChannel = new MessageChannel()
-    const pagePort = pageChannel.port1
-    const pageRouter = new RpcRouter(pagePort)
+    // const pageChannel = new MessageChannel()
+    // const pagePort = pageChannel.port1
+    // const pageRouter = new RpcRouter(pagePort)
 
-    serviceWorker.postMessage(JSON.stringify({ method: "connect" }), [pageChannel.port2])
+    // serviceWorker.postMessage(JSON.stringify({ method: "connect" }), [pageChannel.port2])
 
-    await pageRouter.helloOrThrow()
+    // await pageRouter.helloOrThrow(AbortSignal.timeout(1000))
 
     // await pageRouter.request({
     //   method: "global_respond",
