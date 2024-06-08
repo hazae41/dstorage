@@ -14,7 +14,7 @@ export class RpcRouter {
   readonly handlers = new Map<string, (request: RpcRequest<any>) => unknown>()
 
   readonly resolveOnHello = new Future<void>()
-  readonly rejectOnClose = new Future<never>()
+  readonly resolveOnClose = new Future<unknown>()
 
   constructor(
     readonly port: MessagePort
@@ -23,7 +23,7 @@ export class RpcRouter {
 
     port.addEventListener("message", onMessage, { passive: true })
 
-    this.rejectOnClose.promise.then(() => {
+    this.resolveOnClose.promise.then(() => {
       port.removeEventListener("message", onMessage)
       port.close()
     })
@@ -101,7 +101,7 @@ export class RpcRouter {
   async requestOrThrow<T>(init: RpcRequestPreinit, transferables: Transferable[] = [], signal = Signals.never()) {
     using resolveOnResponse = this.#request<T>(init, transferables)
     using rejectOnAbort = Signals.rejectOnAbort(signal)
-    const rejectOnClose = this.rejectOnClose.promise
+    const rejectOnClose = this.resolveOnClose.promise.then(r => { throw r })
 
     return await Promise.race([resolveOnResponse.get(), rejectOnAbort.get(), rejectOnClose])
   }
@@ -127,7 +127,7 @@ export class RpcRouter {
         await Promise.race([resolveOnResponse.get(), rejectOnTimeout])
         await new Promise(ok => setTimeout(ok, 1000))
       } catch (e: unknown) {
-        this.rejectOnClose.reject(e)
+        this.resolveOnClose.resolve(e)
         return
       }
     }

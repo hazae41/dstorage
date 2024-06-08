@@ -1,6 +1,6 @@
 import { RpcRouter } from "@/libs/jsonrpc"
 import { WindowMessenger } from "@/libs/messenger"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useState } from "react"
 
 const TARGET = "https://tabs-warehouse-college-reed.trycloudflare.com"
 
@@ -34,14 +34,6 @@ export default function Home() {
     serviceWorker.postMessage({ method: "connect3", params: [TARGET] }, [channel.port2])
   }, [iframe])
 
-  useEffect(() => {
-    if (iframe == null)
-      return
-    if (iframe.contentWindow == null)
-      return
-    connect()
-  }, [iframe, connect])
-
   const onAskClick = useCallback(async () => {
     try {
       const channel = new MessageChannel()
@@ -67,6 +59,16 @@ export default function Home() {
       console.error(e)
     }
   }, [])
+
+  const [enabled, setEnabled] = useState(false)
+
+  const onEnableClick = useCallback(async () => {
+    setEnabled(true)
+  }, [])
+
+  const onConnectClick = useCallback(async () => {
+    connect()
+  }, [connect])
 
   const onSetClick = useCallback(async () => {
     try {
@@ -115,14 +117,23 @@ export default function Home() {
   }, [])
 
   return <main className="">
-    <iframe
-      ref={setIframe}
-      width={0}
-      height={0}
-      src={`${TARGET}/iframe.html`} />
+    {enabled &&
+      <iframe
+        ref={setIframe}
+        width={0}
+        height={0}
+        src={`${TARGET}/iframe.html`} />}
     <button className="w-full"
       onClick={onAskClick}>
       Ask permission
+    </button>
+    <button className="w-full"
+      onClick={onEnableClick}>
+      Enable
+    </button>
+    <button className="w-full"
+      onClick={onConnectClick}>
+      Connect
     </button>
     <button className="w-full"
       onClick={onSetClick}>
