@@ -30,8 +30,8 @@ export default function Home() {
     /**
      * Connect yall
      */
-    iframe.contentWindow.postMessage(JSON.stringify({ method: "connect2" }), TARGET, [channel.port1])
-    serviceWorker.postMessage(JSON.stringify({ method: "connect" }), [channel.port2])
+    iframe.contentWindow.postMessage({ method: "connect2" }, TARGET, [channel.port1])
+    serviceWorker.postMessage({ method: "connect" }, [channel.port2])
   }, [iframe])
 
   useEffect(() => {
@@ -55,13 +55,13 @@ export default function Home() {
 
       await windowMessenger.pingOrThrow()
 
-      window.postMessage(JSON.stringify({ method: "connect" }), TARGET, [channel.port2])
+      window.postMessage({ method: "connect" }, TARGET, [channel.port2])
 
       await windowRouter.helloOrThrow(AbortSignal.timeout(1000))
 
       await windowRouter.requestOrThrow<void>({
         method: "kv_ask",
-        params: ["test"],
+        params: ["test", 5_000_000],
       }, AbortSignal.timeout(60_000)).then(r => r.unwrap())
 
       window.close()
@@ -83,7 +83,7 @@ export default function Home() {
       height={0}
       src={`${TARGET}/iframe.html`} />
     <button onClick={onClick}>
-      ask
+      Ask permission
     </button>
   </main>
 }

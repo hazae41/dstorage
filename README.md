@@ -51,18 +51,18 @@ function example(value: boolean): void
 You can call it with
 
 ```tsx
-port.postMessage(JSON.stringify({ jsonrpc: "2.0", id: 123, method: "example", params: [true] }))
+port.postMessage({ jsonrpc: "2.0", id: 123, method: "example", params: [true] })
 ```
 
 And get the result with
 
 ```tsx
-const { id, result, error } = JSON.parse(event.data)
+const { id, result, error } = event.data
 ```
 
-### KeyVal (service-worker, iframe)
+### KeyVal
 
-This is a simple key-value storage using IndexedDB.
+This is a key-value storage using Cache API.
 
 The access is scoped by user-interaction
 
@@ -84,7 +84,7 @@ function kv_get(name: string, key: string): unknown
 
 This will return `value` from `key` in `name`
 
-### WebAuthn KV (service-worker, iframe)
+### WebAuthn KV
 
 This is a key-value storage using WebAuthn.
 

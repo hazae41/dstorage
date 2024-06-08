@@ -23,14 +23,12 @@ export function HashRouter() {
   const onMessage = useCallback(async (event: MessageEvent) => {
     if (event.origin === location.origin)
       return
-    if (typeof event.data !== "string")
-      return
-    const message = JSON.parse(event.data) as RpcRequestPreinit
+    const message = event.data as RpcRequestPreinit
 
     if (message.method === "ping") {
       if (event.source == null)
         return
-      event.source.postMessage(JSON.stringify({ method: "pong" }), { targetOrigin: event.origin })
+      event.source.postMessage({ method: "pong" }, { targetOrigin: event.origin })
       return
     }
 
@@ -73,7 +71,7 @@ export function HashRouter() {
 
     const backgroundRouter = new RpcRouter(channel.port1)
 
-    serviceWorker.postMessage(JSON.stringify({ method: "connect" }), [channel.port2])
+    serviceWorker.postMessage({ method: "connect" }, [channel.port2])
 
     await backgroundRouter.helloOrThrow(AbortSignal.timeout(1000))
 
@@ -91,11 +89,12 @@ export function HashRouter() {
   const { origin, request, response } = exchange
 
   if (request.method === "kv_ask") {
-    const [name] = request.params as [string]
+    const [name, capacity] = request.params as [string, number]
 
     return <KvAsk
       name={name}
       origin={origin}
+      capacity={capacity}
       response={response}
       background={background} />
   }
@@ -106,19 +105,20 @@ export function HashRouter() {
 export function KvAsk(props: {
   readonly name: string
   readonly origin: string,
+  readonly capacity: number
   readonly background: RpcRouter
   readonly response: Future<unknown>,
 }) {
-  const { name, origin, background, response } = props
+  const { name, origin, capacity, background, response } = props
 
   const onAllow = useCallback(async () => {
-    // await background.requestOrThrow<void>({
-    //   method: "kv_allow",
-    //   params: [name, origin]
-    // }, AbortSignal.timeout(1000)).then(r => r.unwrap())
+    await background.requestOrThrow<void>({
+      method: "kv_allow",
+      params: [name, origin, capacity]
+    }, AbortSignal.timeout(1000)).then(r => r.unwrap())
 
     response.resolve(undefined)
-  }, [background, name, origin, response])
+  }, [background, name, origin, capacity, response])
 
   const onReject = useCallback(async () => {
     response.reject(new Error(`User rejected`))
@@ -126,7 +126,7 @@ export function KvAsk(props: {
 
   return <div>
     <div>
-      {`Do you want to allow "${origin}" to access "${name}"`}
+      {`Do you want to allow "${origin}" to access up to ${capacity / 1_000_000} MB in "${name}"`}
     </div>
     <button onClick={onAllow}>
       Allow

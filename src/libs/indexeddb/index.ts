@@ -1,3 +1,5 @@
+import { Nullable } from "@hazae41/option"
+
 export class Database {
 
   constructor(
@@ -27,7 +29,7 @@ export class Database {
     return new Database(database)
   }
 
-  async setOrThrow<T>(key: string, value: T): Promise<void> {
+  async setOrThrow(key: string, value: string): Promise<void> {
     const transaction = this.database.transaction("keyval", "readwrite")
     const store = transaction.objectStore("keyval")
 
@@ -41,11 +43,11 @@ export class Database {
     transaction.commit()
   }
 
-  async getOrThrow<T>(key: string): Promise<T> {
+  async getOrThrow(key: string): Promise<Nullable<string>> {
     const transaction = this.database.transaction("keyval", "readonly")
     const store = transaction.objectStore("keyval")
 
-    const value = await new Promise<T>((ok, err) => {
+    const value = await new Promise<string>((ok, err) => {
       const request = store.get(key)
 
       request.onerror = () => err(request.error)

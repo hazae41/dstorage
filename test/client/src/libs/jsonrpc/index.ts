@@ -30,11 +30,7 @@ export class RpcRouter {
   }
 
   async #onMessage(event: MessageEvent) {
-    if (typeof event.data !== "string")
-      return
-    const message = JSON.parse(event.data) as RpcMessageInit
-
-    console.log(message)
+    const message = event.data as RpcMessageInit
 
     if (typeof message !== "object")
       return
@@ -53,9 +49,8 @@ export class RpcRouter {
       this.resolveOnHello.resolve()
 
       const response = new RpcOk(request.id, undefined)
-      const data = JSON.stringify(response)
 
-      this.port.postMessage(data)
+      this.port.postMessage(response)
       return
     }
 
@@ -64,25 +59,27 @@ export class RpcRouter {
     if (handler == null) {
       const error = new RpcMethodNotFoundError()
       const response = new RpcErr(request.id, error)
-      const data = JSON.stringify(response)
 
-      this.port.postMessage(data)
+      this.port.postMessage(response)
       return
     }
 
     try {
       const result = await handler(request)
       const response = new RpcOk(request.id, result)
-      const data = JSON.stringify(response)
 
-      this.port.postMessage(data)
-      return
+      if (result instanceof ArrayBuffer) {
+        this.port.postMessage(response, [result])
+        return
+      } else {
+        this.port.postMessage(response)
+        return
+      }
     } catch (e: unknown) {
       const error = RpcError.rewrap(e)
       const response = new RpcErr(request.id, error)
-      const data = JSON.stringify(response)
 
-      this.port.postMessage(data)
+      this.port.postMessage(response)
       return
     }
   }
@@ -96,7 +93,7 @@ export class RpcRouter {
     const clean = () => this.requests.delete(request.id)
     const disposer = new Disposer(resolveOnResponse.promise, clean)
 
-    this.port.postMessage(JSON.stringify(request))
+    this.port.postMessage(request)
 
     return disposer
   }

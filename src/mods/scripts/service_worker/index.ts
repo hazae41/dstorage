@@ -1,29 +1,16 @@
-import { Database } from "@/libs/indexeddb"
 import { RpcRouter } from "@/libs/jsonrpc"
-import { Future } from "@hazae41/future"
-import { RpcCounter, RpcId, RpcRequest, RpcRequestPreinit, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc"
+import { RpcRequestPreinit } from "@hazae41/jsonrpc"
 
 export { }
 
 declare const self: ServiceWorkerGlobalScope
 
-console.log(location.origin, "service_worker", "starting")
-
-const database = await Database.openOrThrow("keyval", 1)
-
-const globalCounter = new RpcCounter()
-const globalRequests = new Map<RpcId, RpcRequest<unknown>>()
-const globalResponses = new Map<RpcId, Future<RpcResponse>>()
+const cache = await caches.open("cache")
 
 self.addEventListener("message", async (event) => {
   if (event.origin !== location.origin)
     return
-  if (typeof event.data !== "string")
-    return
-
-  const message = JSON.parse(event.data) as RpcRequestPreinit
-
-  console.debug(`${event.origin} -> ${location.origin}/service_worker: ${event.data}`)
+  const message = event.data as RpcRequestPreinit
 
   /**
    * iframe -> serviceWorker
@@ -36,15 +23,15 @@ self.addEventListener("message", async (event) => {
 
     const pageRouter = new RpcRouter(pagePort)
 
-    pageRouter.handlers.set("global_request", async (request) => {
-      const [origin] = request.params as [string]
-      return globalRequests.get(origin)
-    })
+    pageRouter.handlers.set("kv_allow", async (request) => {
+      const [scope, origin] = request.params as [string, string]
 
-    pageRouter.handlers.set("global_respond", async (request) => {
-      const [init] = request.params as [RpcResponseInit]
-      const response = RpcResponse.from(init)
-      globalResponses.get(response.id)?.resolve(response)
+      const allowedUrl = new URL("/allowed", scope)
+      allowedUrl.searchParams.set("origin", origin)
+      const allowedReq = new Request(allowedUrl)
+      const allowedRes = new Response()
+
+      await cache.put(allowedReq, allowedRes)
     })
 
     await pageRouter.helloOrThrow(AbortSignal.timeout(1000))
@@ -65,62 +52,68 @@ self.addEventListener("message", async (event) => {
     if (originPort == null)
       return
 
-    const originData = { kv: { allowed: false } }
     const originRouter = new RpcRouter(originPort)
 
-    originRouter.handlers.set("kv_ask", async (request) => {
-      const [name] = request.params as [string]
-
-      const current = await database.getOrThrow(btoa(`${name}#${origin}`))
-
-      if (current === true) {
-        originData.kv.allowed = true
-        return true
-      }
-
-      const globalRequest = globalCounter.prepare({ method: "kv_ask", params: [name, origin] })
-      const globalResponse = new Future<RpcResponse>()
-
-      try {
-        globalRequests.set(globalRequest.id, globalRequest)
-        globalResponses.set(globalRequest.id, globalResponse)
-
-        const globalResult = await globalResponse.promise.then(r => r.unwrap())
-
-        if (!globalResult)
-          return false
-
-        console.log("allowing", name, origin)
-
-        await database.setOrThrow(btoa(`${name}#${origin}`), true)
-
-        originData.kv.allowed = true
-        return true
-      } finally {
-        // globalResponses.delete(globalId)
-      }
-    })
-
     originRouter.handlers.set("kv_set", async (request) => {
-      const [name, key, value] = request.params as [string, string, unknown]
+      const [scope, key, value] = request.params as [string, string, BodyInit]
 
-      if (!originData.kv.allowed)
+      const allowedUrl = new URL("/allowed", scope)
+      allowedUrl.searchParams.set("origin", origin)
+      const allowedReq = new Request(allowedUrl)
+      const allowedRes = await cache.match(allowedReq)
+
+      if (allowedRes == null)
         throw new Error("Not allowed")
 
-      await database.setOrThrow(`${name}#${key}`, value)
+      const capacityUrl = new URL("/capacity", scope)
+      const capacityReq = new Request(capacityUrl)
+      const capacityRes = await cache.match(capacityReq)
+      const capacityNum = capacityRes == null ? 0 : await capacityRes.json() as number
 
-      return
+      const sizeUrl = new URL("/size", scope)
+      const sizeReq = new Request(sizeUrl)
+      const sizeRes = await cache.match(sizeReq)
+      const sizeNum = sizeRes == null ? 0 : await sizeRes.json() as number
+
+      const valueUrl = new URL("/value", scope)
+      valueUrl.searchParams.set("key", key)
+      const valueReq = new Request(valueUrl)
+      const valueRes = await cache.match(valueReq)
+      const valueSize = valueRes == null ? 0 : await valueRes.arrayBuffer().then(r => r.byteLength)
+
+      const newValueRes = new Response(value)
+      const newValueRes2 = newValueRes.clone()
+      const newValueSize = await newValueRes2.arrayBuffer().then(r => r.byteLength)
+
+      const newSizeNum = sizeNum - valueSize + newValueSize
+
+      if (newSizeNum > capacityNum)
+        throw new Error("Too big")
+
+      await cache.put(valueReq, newValueRes)
+      await cache.put(sizeReq, new Response(JSON.stringify(newSizeNum)))
     })
 
     originRouter.handlers.set("kv_get", async (request) => {
-      const [name, key] = request.params as [string, string]
+      const [scope, key] = request.params as [string, string]
 
-      if (!originData.kv.allowed)
+      const allowedUrl = new URL("/allowed", scope)
+      allowedUrl.searchParams.set("origin", origin)
+      const allowedReq = new Request(allowedUrl)
+      const allowedRes = await cache.match(allowedReq)
+
+      if (allowedRes == null)
         throw new Error("Not allowed")
 
-      const value = await database.getOrThrow(`${name}#${key}`)
+      const valueUrl = new URL("/value", scope)
+      valueUrl.searchParams.set("key", key)
+      const valueReq = new Request(valueUrl)
+      const valueRes = await cache.match(valueReq)
 
-      return value
+      if (valueRes == null)
+        throw new Error("Not found")
+
+      return await valueRes.arrayBuffer()
     })
 
     await originRouter.helloOrThrow(AbortSignal.timeout(1000))
@@ -128,7 +121,5 @@ self.addEventListener("message", async (event) => {
     return
   }
 })
-
-console.log(location.origin, "service_worker", "started")
 
 self.skipWaiting()

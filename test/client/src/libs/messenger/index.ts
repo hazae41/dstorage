@@ -18,9 +18,7 @@ export class WindowMessenger {
         return
       if (event.origin !== this.origin)
         return
-      if (typeof event.data !== "string")
-        return
-      const message = JSON.parse(event.data) as RpcRequestPreinit
+      const message = event.data as RpcRequestPreinit
 
       if (message.method === "pong") {
         resolveOnPong.resolve(true)
@@ -32,7 +30,7 @@ export class WindowMessenger {
       addEventListener("message", onMessage, { passive: true })
 
       while (!signal.aborted) {
-        this.window.postMessage(JSON.stringify({ method: "ping" }), { targetOrigin: this.origin })
+        this.window.postMessage({ method: "ping" }, this.origin)
         const resolveOnTimeout = new Promise<boolean>(ok => setTimeout(ok, 100, false))
         const ponged = await Promise.race([resolveOnPong.promise, resolveOnTimeout, rejectOnAbort.get()])
 
