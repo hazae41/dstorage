@@ -23,7 +23,7 @@ self.addEventListener("message", async (event) => {
 
     const pageRouter = new RpcRouter(pagePort)
 
-    pageRouter.handlers.set("kv_allow", async (request) => {
+    pageRouter.handlers.set("kv_ask", async (request) => {
       const [scope, origin, capacity] = request.params as [string, string, number]
 
       const allowedUrl = new URL("/allowed", scope)

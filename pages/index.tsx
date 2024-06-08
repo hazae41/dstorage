@@ -113,9 +113,9 @@ export function KvAsk(props: {
 
   const onAllow = useCallback(async () => {
     await background.requestOrThrow<void>({
-      method: "kv_allow",
+      method: "kv_ask",
       params: [name, origin, capacity]
-    }, AbortSignal.timeout(1000)).then(r => r.unwrap())
+    }, [], AbortSignal.timeout(1000)).then(r => r.unwrap())
 
     response.resolve(undefined)
   }, [background, name, origin, capacity, response])
