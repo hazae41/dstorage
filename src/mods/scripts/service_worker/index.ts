@@ -24,7 +24,7 @@ self.addEventListener("message", async (event) => {
     const pageRouter = new RpcRouter(pagePort)
 
     pageRouter.handlers.set("kv_allow", async (request) => {
-      const [scope, origin] = request.params as [string, string]
+      const [scope, origin, capacity] = request.params as [string, string, number]
 
       const allowedUrl = new URL("/allowed", scope)
       allowedUrl.searchParams.set("origin", origin)
@@ -32,6 +32,12 @@ self.addEventListener("message", async (event) => {
       const allowedRes = new Response()
 
       await cache.put(allowedReq, allowedRes)
+
+      const capacityUrl = new URL("/capacity", scope)
+      const capacityReq = new Request(capacityUrl)
+      const capacityRes = new Response(JSON.stringify(capacity))
+
+      await cache.put(capacityReq, capacityRes)
     })
 
     await pageRouter.helloOrThrow(AbortSignal.timeout(1000))
