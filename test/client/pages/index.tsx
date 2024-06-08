@@ -1,6 +1,8 @@
-import { RpcRouter } from "@/libs/jsonrpc"
-import { WindowMessenger } from "@/libs/messenger"
-import { useCallback, useState } from "react"
+import "@hazae41/symbol-dispose-polyfill";
+
+import { RpcRouter } from "@/libs/jsonrpc";
+import { WindowMessenger } from "@/libs/messenger";
+import { useCallback, useState } from "react";
 
 const TARGET = "https://tabs-warehouse-college-reed.trycloudflare.com"
 

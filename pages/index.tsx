@@ -1,12 +1,29 @@
+import "@hazae41/symbol-dispose-polyfill";
+
 import { RpcRouter } from "@/libs/jsonrpc";
 import { Client } from "@/libs/react/client";
 import { Future } from "@hazae41/future";
 import { RpcRequest, RpcRequestPreinit } from "@hazae41/jsonrpc";
-import { useCallback, useEffect, useState } from "react";
+import { ReactNode, useCallback, useEffect, useState } from "react";
+
+export function Iframer(props: {
+  readonly children?: ReactNode
+}) {
+  const { children } = props
+
+  // if (window.self === window.top)
+  //   return <iframe
+  //     style={{ height: "100%" }}
+  //     src="/" />
+
+  return <>{children}</>
+}
 
 export default function Home() {
   return <Client>
-    <HashRouter />
+    <Iframer>
+      <Router />
+    </Iframer>
   </Client>
 }
 
@@ -16,7 +33,7 @@ export interface Exchange {
   readonly response: Future<unknown>
 }
 
-export function HashRouter() {
+export function Router() {
   const [background, setBackground] = useState<RpcRouter>()
   const [exchange, setExchange] = useState<Exchange>()
 

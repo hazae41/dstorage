@@ -1,7 +1,9 @@
-import { RpcRouter } from "@/libs/jsonrpc"
-import { RpcRequestPreinit } from "@hazae41/jsonrpc"
+import "@hazae41/symbol-dispose-polyfill";
 
-export { }
+import { RpcRouter } from "@/libs/jsonrpc";
+import { RpcRequestPreinit } from "@hazae41/jsonrpc";
+
+export { };
 
 declare const self: ServiceWorkerGlobalScope
 

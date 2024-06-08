@@ -1,7 +1,9 @@
-import { RpcRouter } from "@/libs/jsonrpc"
-import { RpcRequestPreinit } from "@hazae41/jsonrpc"
+import "@hazae41/symbol-dispose-polyfill";
 
-export { }
+import { RpcRouter } from "@/libs/jsonrpc";
+import { RpcRequestPreinit } from "@hazae41/jsonrpc";
+
+export { };
 
 declare const self: ServiceWorkerGlobalScope
 
@@ -148,4 +150,4 @@ self.addEventListener("message", async (event) => {
   }
 })
 
-self.skipWaiting()
+// self.skipWaiting()

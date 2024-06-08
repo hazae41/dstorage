@@ -1,6 +1,8 @@
-import { RpcRequestPreinit } from "@hazae41/jsonrpc"
+import "@hazae41/symbol-dispose-polyfill";
 
-export { }
+import { RpcRequestPreinit } from "@hazae41/jsonrpc";
+
+export { };
 
 await navigator.serviceWorker.register("/service_worker.js")
 const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
