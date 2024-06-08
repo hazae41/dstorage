@@ -42,7 +42,7 @@ export default function Home() {
     connect()
   }, [iframe, connect])
 
-  const onClick = useCallback(async () => {
+  const onAskClick = useCallback(async () => {
     try {
       const channel = new MessageChannel()
       const window = open(`${TARGET}`, "_blank")
@@ -63,16 +63,54 @@ export default function Home() {
         method: "kv_ask",
         params: ["https://example.com", 5_000_000],
       }, [], AbortSignal.timeout(60_000)).then(r => r.unwrap())
-
-      window.close()
-
-      await new Promise(r => setTimeout(r, 0))
-
-      alert("Yay")
     } catch (e: unknown) {
       console.error(e)
+    }
+  }, [])
 
-      alert(`An error occured`)
+  const onSetClick = useCallback(async () => {
+    try {
+      const channel = new MessageChannel()
+
+      await navigator.serviceWorker.register("/service_worker.js")
+      const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
+
+      const backgroundRouter = new RpcRouter(channel.port1)
+
+      serviceWorker.postMessage({ method: "connect" }, [channel.port2])
+
+      await backgroundRouter.helloOrThrow(AbortSignal.timeout(1000))
+
+      await backgroundRouter.requestOrThrow<void>({
+        method: "kv_set",
+        params: ["https://example.com", "buffer", new Uint8Array([1, 2, 3, 4, 5])],
+      }).then(r => r.unwrap())
+    } catch (e: unknown) {
+      console.error(e)
+    }
+  }, [])
+
+  const onGetClick = useCallback(async () => {
+    try {
+      const channel = new MessageChannel()
+
+      await navigator.serviceWorker.register("/service_worker.js")
+      const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
+
+      const backgroundRouter = new RpcRouter(channel.port1)
+
+      serviceWorker.postMessage({ method: "connect" }, [channel.port2])
+
+      await backgroundRouter.helloOrThrow(AbortSignal.timeout(1000))
+
+      const buffer = await backgroundRouter.requestOrThrow<ArrayBuffer>({
+        method: "kv_get",
+        params: ["https://example.com", "buffer"],
+      }).then(r => r.unwrap())
+
+      console.log(buffer)
+    } catch (e: unknown) {
+      console.error(e)
     }
   }, [])
 
@@ -82,8 +120,17 @@ export default function Home() {
       width={0}
       height={0}
       src={`${TARGET}/iframe.html`} />
-    <button onClick={onClick}>
+    <button className="w-full"
+      onClick={onAskClick}>
       Ask permission
+    </button>
+    <button className="w-full"
+      onClick={onSetClick}>
+      Set value
+    </button>
+    <button className="w-full"
+      onClick={onGetClick}>
+      Get value
     </button>
   </main>
 }

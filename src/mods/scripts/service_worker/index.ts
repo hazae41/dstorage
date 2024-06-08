@@ -29,9 +29,22 @@ self.addEventListener("message", async (event) => {
       const allowedUrl = new URL("/allowed", scope)
       allowedUrl.searchParams.set("origin", origin)
       const allowedReq = new Request(allowedUrl)
-      const allowedRes = new Response()
+      const allowedRes = new Response(JSON.stringify(true))
+
+      console.log("ask", allowedUrl.toString(), allowedRes)
 
       await cache.put(allowedReq, allowedRes)
+
+      {
+        await new Promise(r => setTimeout(r, 100))
+
+        const allowedUrl = new URL("/allowed", scope)
+        allowedUrl.searchParams.set("origin", origin)
+        const allowedReq = new Request(allowedUrl)
+        const allowedRes = await cache.match(allowedReq)
+
+        console.log("ask2", allowedReq, allowedRes)
+      }
 
       const capacityUrl = new URL("/capacity", scope)
       const capacityReq = new Request(capacityUrl)
@@ -68,8 +81,11 @@ self.addEventListener("message", async (event) => {
       allowedUrl.searchParams.set("origin", origin)
       const allowedReq = new Request(allowedUrl)
       const allowedRes = await cache.match(allowedReq)
+      const allowedVal = allowedRes == null ? false : await allowedRes.json() as boolean
 
-      if (allowedRes == null)
+      console.log("set", allowedUrl.toString(), allowedRes)
+
+      if (!allowedVal)
         throw new Error("Not allowed")
 
       const capacityUrl = new URL("/capacity", scope)
@@ -108,8 +124,11 @@ self.addEventListener("message", async (event) => {
       allowedUrl.searchParams.set("origin", origin)
       const allowedReq = new Request(allowedUrl)
       const allowedRes = await cache.match(allowedReq)
+      const allowedVal = allowedRes == null ? false : await allowedRes.json() as boolean
 
-      if (allowedRes == null)
+      console.log("get", allowedUrl, allowedVal)
+
+      if (allowedVal == null)
         throw new Error("Not allowed")
 
       const valueUrl = new URL("/value", scope)

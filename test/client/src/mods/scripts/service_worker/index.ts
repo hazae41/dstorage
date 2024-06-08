@@ -5,6 +5,8 @@ export { }
 
 declare const self: ServiceWorkerGlobalScope
 
+let targetRouter: RpcRouter
+
 addEventListener("message", async (event) => {
   if (event.origin !== location.origin)
     return
@@ -17,6 +19,15 @@ addEventListener("message", async (event) => {
       return
 
     const pageRouter = new RpcRouter(pagePort)
+
+    const onRequest = async (request: RpcRequestPreinit) => {
+      if (targetRouter == null)
+        return
+      return await targetRouter.requestOrThrow(request, [], AbortSignal.timeout(1000)).then(r => r.unwrap())
+    }
+
+    pageRouter.handlers.set("kv_set", onRequest)
+    pageRouter.handlers.set("kv_get", onRequest)
 
     await pageRouter.helloOrThrow(AbortSignal.timeout(1000))
 
@@ -38,6 +49,7 @@ addEventListener("message", async (event) => {
 
     await originRouter.helloOrThrow(AbortSignal.timeout(1000))
 
+    targetRouter = originRouter
     return
   }
 })

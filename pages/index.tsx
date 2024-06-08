@@ -118,6 +118,8 @@ export function KvAsk(props: {
     }, [], AbortSignal.timeout(1000)).then(r => r.unwrap())
 
     response.resolve(undefined)
+
+    close()
   }, [background, name, origin, capacity, response])
 
   const onReject = useCallback(async () => {
