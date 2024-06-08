@@ -2,7 +2,7 @@ import { RpcRouter } from "@/libs/jsonrpc"
 import { WindowMessenger } from "@/libs/messenger"
 import { useCallback, useEffect, useState } from "react"
 
-const TARGET = "https://auction-banners-acoustic-princeton.trycloudflare.com"
+const TARGET = "https://tabs-warehouse-college-reed.trycloudflare.com"
 
 export default function Home() {
   const [iframe, setIframe] = useState<HTMLIFrameElement | null>(null)
@@ -43,19 +43,37 @@ export default function Home() {
   }, [iframe, connect])
 
   const onClick = useCallback(async () => {
-    const channel = new MessageChannel()
-    const window = open(`${TARGET}`, "_blank")
+    try {
+      const channel = new MessageChannel()
+      const window = open(`${TARGET}`, "_blank")
 
-    if (window == null)
-      return
-    const windowMessenger = new WindowMessenger(window, TARGET)
-    const windowRouter = new RpcRouter(channel.port1)
+      if (window == null)
+        return
 
-    await windowMessenger.pingOrThrow()
+      const windowMessenger = new WindowMessenger(window, TARGET)
+      const windowRouter = new RpcRouter(channel.port1)
 
-    window.postMessage(JSON.stringify({ method: "connect" }), TARGET, [channel.port2])
+      await windowMessenger.pingOrThrow()
 
-    await windowRouter.helloOrThrow(AbortSignal.timeout(1000))
+      window.postMessage(JSON.stringify({ method: "connect" }), TARGET, [channel.port2])
+
+      await windowRouter.helloOrThrow(AbortSignal.timeout(1000))
+
+      await windowRouter.requestOrThrow<void>({
+        method: "kv_ask",
+        params: ["test"],
+      }, AbortSignal.timeout(60_000)).then(r => r.unwrap())
+
+      window.close()
+
+      await new Promise(r => setTimeout(r, 0))
+
+      alert("Yay")
+    } catch (e: unknown) {
+      console.error(e)
+
+      alert(`An error occured`)
+    }
   }, [])
 
   return <main className="">

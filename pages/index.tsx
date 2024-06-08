@@ -1,8 +1,8 @@
 import { RpcRouter } from "@/libs/jsonrpc";
 import { Client } from "@/libs/react/client";
 import { Future } from "@hazae41/future";
-import { RpcRequest, RpcRequestPreinit, RpcResponse } from "@hazae41/jsonrpc";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { RpcRequest, RpcRequestPreinit } from "@hazae41/jsonrpc";
+import { useCallback, useEffect, useState } from "react";
 
 export default function Home() {
   return <Client>
@@ -10,16 +10,15 @@ export default function Home() {
   </Client>
 }
 
+export interface Exchange {
+  readonly origin: string,
+  readonly request: RpcRequestPreinit<unknown>,
+  readonly response: Future<unknown>
+}
+
 export function HashRouter() {
-  const url = new URL(location.hash.slice(1), location.origin)
-
-  const [parentRouter, setParentRouter] = useState<RpcRouter | null>(null)
-  const [backgroundRouter, setBackgroundRouter] = useState<RpcRouter | null>(null)
-
-  const current = useRef<{
-    readonly request: RpcRequest<unknown>,
-    readonly response: Future<RpcResponse>
-  }>()
+  const [background, setBackground] = useState<RpcRouter>()
+  const [exchange, setExchange] = useState<Exchange>()
 
   const onMessage = useCallback(async (event: MessageEvent) => {
     if (event.origin === location.origin)
@@ -42,20 +41,21 @@ export function HashRouter() {
         return
       const parentRouter = new RpcRouter(parentPort)
 
-      parentRouter.handlers.set("kv_ask", async (request) => {
-        const [name] = request.params
+      const onRequest = async (request: RpcRequest<unknown>) => {
+        const origin = event.origin
+        const response = new Future<unknown>()
 
-        const response = new Future<RpcResponse>()
-        current.current = { request, response }
+        setExchange({ origin, request, response })
 
-        location.assign(`/#/kv_ask?name=${name}`)
+        return await response.promise
+      }
 
-        return await response.promise.then(r => r.unwrap())
-      })
+      parentRouter.handlers.set("kv_ask", onRequest)
+      parentRouter.handlers.set("webauthn_kv_set", onRequest)
+      parentRouter.handlers.set("webauthn_kv_get", onRequest)
 
       await parentRouter.helloOrThrow(AbortSignal.timeout(1000))
 
-      setParentRouter(parentRouter)
       return
     }
   }, [])
@@ -77,25 +77,27 @@ export function HashRouter() {
 
     await backgroundRouter.helloOrThrow(AbortSignal.timeout(1000))
 
-    setBackgroundRouter(backgroundRouter)
+    setBackground(backgroundRouter)
   }, [])
 
   useEffect(() => {
     connect()
   }, [connect])
 
-  if (parentRouter == null)
+  if (background == null)
     return null
-  if (backgroundRouter == null)
+  if (exchange == null)
     return null
+  const { origin, request, response } = exchange
 
-  if (url.pathname === "/kv_ask") {
-    const name = url.searchParams.get("name")!
+  if (request.method === "kv_ask") {
+    const [name] = request.params as [string]
 
     return <KvAsk
       name={name}
-      originRouter={parentRouter}
-      pageRouter={backgroundRouter} />
+      origin={origin}
+      response={response}
+      background={background} />
   }
 
   return null
@@ -103,18 +105,24 @@ export function HashRouter() {
 
 export function KvAsk(props: {
   readonly name: string
-  readonly originRouter: RpcRouter
-  readonly pageRouter: RpcRouter
+  readonly origin: string,
+  readonly background: RpcRouter
+  readonly response: Future<unknown>,
 }) {
-  const { name, originRouter, pageRouter } = props
+  const { name, origin, background, response } = props
 
   const onAllow = useCallback(async () => {
+    // await background.requestOrThrow<void>({
+    //   method: "kv_allow",
+    //   params: [name, origin]
+    // }, AbortSignal.timeout(1000)).then(r => r.unwrap())
 
-  }, [])
+    response.resolve(undefined)
+  }, [background, name, origin, response])
 
   const onReject = useCallback(async () => {
-
-  }, [])
+    response.reject(new Error(`User rejected`))
+  }, [response])
 
   return <div>
     <div>
