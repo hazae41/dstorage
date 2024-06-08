@@ -53,6 +53,7 @@ self.addEventListener("message", async (event) => {
 
     if (origin == null)
       return
+
     const [originPort] = event.ports
 
     if (originPort == null)

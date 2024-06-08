@@ -31,7 +31,7 @@ export default function Home() {
      * Connect yall
      */
     iframe.contentWindow.postMessage({ method: "connect2" }, TARGET, [channel.port1])
-    serviceWorker.postMessage({ method: "connect" }, [channel.port2])
+    serviceWorker.postMessage({ method: "connect3", params: [TARGET] }, [channel.port2])
   }, [iframe])
 
   useEffect(() => {
@@ -61,8 +61,8 @@ export default function Home() {
 
       await windowRouter.requestOrThrow<void>({
         method: "kv_ask",
-        params: ["test", 5_000_000],
-      }, AbortSignal.timeout(60_000)).then(r => r.unwrap())
+        params: ["https://example.com", 5_000_000],
+      }, [], AbortSignal.timeout(60_000)).then(r => r.unwrap())
 
       window.close()
 

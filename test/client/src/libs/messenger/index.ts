@@ -9,7 +9,7 @@ export class WindowMessenger {
     readonly origin: string
   ) { }
 
-  async pingOrThrow(signal = new AbortController().signal) {
+  async pingOrThrow(signal = Signals.never()) {
     const resolveOnPong = new Future<boolean>()
     using rejectOnAbort = Signals.rejectOnAbort(signal)
 

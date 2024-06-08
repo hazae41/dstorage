@@ -84,7 +84,7 @@ export class RpcRouter {
     }
   }
 
-  #request<T>(init: RpcRequestPreinit) {
+  #request<T>(init: RpcRequestPreinit, transferables: Transferable[] = []) {
     const resolveOnResponse = new Future<RpcResponse<T>>()
 
     const request = this.counter.prepare(init)
@@ -93,20 +93,20 @@ export class RpcRouter {
     const clean = () => this.requests.delete(request.id)
     const disposer = new Disposer(resolveOnResponse.promise, clean)
 
-    this.port.postMessage(request)
+    this.port.postMessage(request, transferables)
 
     return disposer
   }
 
-  async requestOrThrow<T>(init: RpcRequestPreinit, signal = new AbortController().signal) {
-    using resolveOnResponse = this.#request<T>(init)
+  async requestOrThrow<T>(init: RpcRequestPreinit, transferables: Transferable[] = [], signal = Signals.never()) {
+    using resolveOnResponse = this.#request<T>(init, transferables)
     using rejectOnAbort = Signals.rejectOnAbort(signal)
     const rejectOnClose = this.rejectOnClose.promise
 
     return await Promise.race([resolveOnResponse.get(), rejectOnAbort.get(), rejectOnClose])
   }
 
-  async helloOrThrow(signal = new AbortController().signal) {
+  async helloOrThrow(signal = Signals.never()) {
     this.port.start()
 
     const resolveOnPassive = this.resolveOnHello.promise
