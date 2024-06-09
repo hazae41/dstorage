@@ -2,36 +2,29 @@ import "@hazae41/symbol-dispose-polyfill";
 
 import { RpcRouter } from "@/libs/jsonrpc";
 import { WindowMessenger } from "@/libs/messenger";
+import { Nullable } from "@hazae41/option";
 import { useCallback, useState } from "react";
 
-const TARGET = "https://tabs-warehouse-college-reed.trycloudflare.com"
+const TARGET = "https://craft-measure-ibm-oil.trycloudflare.com"
 
 export default function Home() {
-  const [iframe, setIframe] = useState<HTMLIFrameElement | null>(null)
+  const [iframe, setIframe] = useState<Nullable<HTMLIFrameElement>>(null)
 
   const connect = useCallback(async () => {
     if (iframe == null)
       return
     if (iframe.contentWindow == null)
       return
+
     const channel = new MessageChannel()
 
     const iframeMessenger = new WindowMessenger(iframe.contentWindow, TARGET)
 
-    /**
-     * Wait for our service-worker to load
-     */
     await navigator.serviceWorker.register("/service_worker.js")
     const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 
-    /**
-     * Wait for the iframe to load
-     */
     await iframeMessenger.pingOrThrow()
 
-    /**
-     * Connect yall
-     */
     iframe.contentWindow.postMessage({ method: "connect2" }, TARGET, [channel.port1])
     serviceWorker.postMessage({ method: "connect3", params: [TARGET] }, [channel.port2])
   }, [iframe])
@@ -55,7 +48,7 @@ export default function Home() {
 
       await windowRouter.requestOrThrow<void>({
         method: "kv_ask",
-        params: ["https://example.com", 5_000_000],
+        params: ["example", 5_000_000],
       }, [], AbortSignal.timeout(60_000)).then(r => r.unwrap())
     } catch (e: unknown) {
       console.error(e)
@@ -87,7 +80,7 @@ export default function Home() {
 
       await backgroundRouter.requestOrThrow<void>({
         method: "kv_set",
-        params: ["https://example.com", "buffer", new Uint8Array([1, 2, 3, 4, 5])],
+        params: ["example", "buffer", new Uint8Array([1, 2, 3, 4, 5])],
       }).then(r => r.unwrap())
     } catch (e: unknown) {
       console.error(e)
@@ -109,7 +102,7 @@ export default function Home() {
 
       const buffer = await backgroundRouter.requestOrThrow<ArrayBuffer>({
         method: "kv_get",
-        params: ["https://example.com", "buffer"],
+        params: ["example", "buffer"],
       }).then(r => r.unwrap())
 
       console.log(buffer)

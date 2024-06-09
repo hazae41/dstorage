@@ -1,41 +1,27 @@
 import "@hazae41/symbol-dispose-polyfill";
 
 import { RpcRouter } from "@/libs/jsonrpc";
+import { WindowMessenger } from "@/libs/messenger";
 import { Client } from "@/libs/react/client";
 import { Future } from "@hazae41/future";
 import { RpcRequest, RpcRequestPreinit } from "@hazae41/jsonrpc";
-import { ReactNode, useCallback, useEffect, useState } from "react";
-
-export function Iframer(props: {
-  readonly children?: ReactNode
-}) {
-  const { children } = props
-
-  // if (window.self === window.top)
-  //   return <iframe
-  //     style={{ height: "100%" }}
-  //     src="/" />
-
-  return <>{children}</>
-}
+import { Nullable } from "@hazae41/option";
+import { useCallback, useEffect, useState } from "react";
 
 export default function Home() {
   return <Client>
-    <Iframer>
-      <Router />
-    </Iframer>
+    <Connector />
   </Client>
 }
 
-export interface Exchange {
-  readonly origin: string,
-  readonly request: RpcRequestPreinit<unknown>,
-  readonly response: Future<unknown>
-}
+export function Connector() {
+  const [iframe, setIframe] = useState<Nullable<HTMLIFrameElement>>(null)
 
-export function Router() {
+  const [origin, setOrigin] = useState<string>()
+  const [request, setRequest] = useState<RpcRequestPreinit<unknown>>()
+  const [response, setResponse] = useState<Future<unknown>>()
+
   const [background, setBackground] = useState<RpcRouter>()
-  const [exchange, setExchange] = useState<Exchange>()
 
   const onMessage = useCallback(async (event: MessageEvent) => {
     if (event.origin === location.origin)
@@ -60,7 +46,9 @@ export function Router() {
         const origin = event.origin
         const response = new Future<unknown>()
 
-        setExchange({ origin, request, response })
+        setOrigin(origin)
+        setRequest(request)
+        setResponse(response)
 
         return await response.promise
       }
@@ -80,36 +68,59 @@ export function Router() {
     return () => removeEventListener("message", onMessage)
   }, [onMessage])
 
-  const connect = useCallback(async () => {
+  const connectOrThrow = useCallback(async () => {
+    if (iframe == null)
+      return
+    if (iframe.contentWindow == null)
+      return
+
     const channel = new MessageChannel()
 
-    await navigator.serviceWorker.register("/service_worker.js")
-    const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
+    const iframeMessenger = new WindowMessenger(iframe.contentWindow, location.origin)
 
-    const backgroundRouter = new RpcRouter(channel.port1)
+    await iframeMessenger.pingOrThrow()
 
-    serviceWorker.postMessage({ method: "connect" }, [channel.port2])
+    const iframeRouter = new RpcRouter(channel.port1)
 
-    await backgroundRouter.helloOrThrow(AbortSignal.timeout(1000))
+    iframe.contentWindow.postMessage({ method: "connect2" }, location.origin, [channel.port2])
 
-    setBackground(backgroundRouter)
-  }, [])
+    await iframeRouter.helloOrThrow(AbortSignal.timeout(1000))
+
+    setBackground(iframeRouter)
+  }, [iframe])
 
   useEffect(() => {
-    connect()
-  }, [connect])
+    connectOrThrow().catch(console.error)
+  }, [connectOrThrow])
 
-  if (background == null)
-    return null
-  if (exchange == null)
-    return null
-  const { origin, request, response } = exchange
+  return <>
+    <iframe
+      width={0}
+      height={0}
+      ref={setIframe}
+      src="/iframe.html" />
+    {origin && request && response && background &&
+      <Router
+        origin={origin}
+        request={request}
+        response={response}
+        background={background} />}
+  </>
+}
+
+export function Router(props: {
+  readonly origin: string,
+  readonly request: RpcRequestPreinit<unknown>
+  readonly response: Future<unknown>
+  readonly background: RpcRouter
+}) {
+  const { origin, background, request, response } = props
 
   if (request.method === "kv_ask") {
-    const [name, capacity] = request.params as [string, number]
+    const [scope, capacity] = request.params as [string, number]
 
     return <KvAsk
-      name={name}
+      scope={scope}
       origin={origin}
       capacity={capacity}
       response={response}
@@ -120,24 +131,24 @@ export function Router() {
 }
 
 export function KvAsk(props: {
-  readonly name: string
+  readonly scope: string
   readonly origin: string,
   readonly capacity: number
   readonly background: RpcRouter
   readonly response: Future<unknown>,
 }) {
-  const { name, origin, capacity, background, response } = props
+  const { scope, origin, capacity, background, response } = props
 
   const onAllow = useCallback(async () => {
     await background.requestOrThrow<void>({
       method: "kv_ask",
-      params: [name, origin, capacity]
+      params: [scope, origin, capacity]
     }, [], AbortSignal.timeout(1000)).then(r => r.unwrap())
 
     response.resolve(undefined)
 
     close()
-  }, [background, name, origin, capacity, response])
+  }, [background, scope, origin, capacity, response])
 
   const onReject = useCallback(async () => {
     response.reject(new Error(`User rejected`))
@@ -145,7 +156,7 @@ export function KvAsk(props: {
 
   return <div>
     <div>
-      {`Do you want to allow "${origin}" to access up to ${capacity / 1_000_000} MB in "${name}"`}
+      {`Do you want to allow "${origin}" to access up to ${capacity / 1_000_000} MB in "${scope}"`}
     </div>
     <button onClick={onAllow}>
       Allow

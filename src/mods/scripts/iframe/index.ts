@@ -4,12 +4,12 @@ import { RpcRequestPreinit } from "@hazae41/jsonrpc";
 
 export { };
 
+await document.requestStorageAccess()
+
 await navigator.serviceWorker.register("/service_worker.js")
 const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 
 addEventListener("message", async (event) => {
-  if (event.origin === location.origin)
-    return
   const message = event.data as RpcRequestPreinit
 
   if (message.method === "ping") {
