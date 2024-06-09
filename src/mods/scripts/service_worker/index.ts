@@ -7,61 +7,17 @@ export { };
 
 declare const self: ServiceWorkerGlobalScope
 
-const cache = await caches.open("cache")
+const uuid = crypto.randomUUID()
 
 self.addEventListener("message", async (event) => {
   if (event.origin !== location.origin)
     return
   const message = event.data as RpcRequestPreinit
 
-  /**
-   * iframe -> serviceWorker
-   */
-  if (message.method === "connect") {
-    const [pagePort] = event.ports
-
-    if (pagePort == null)
-      return
-
-    const pageRouter = new RpcRouter(pagePort)
-
-    pageRouter.handlers.set("kv_ask", async (request) => {
-      const [scope, origin, capacity] = request.params as [string, string, number]
-
-      const allowedUrl = new URL("/allowed", scope)
-      allowedUrl.searchParams.set("origin", origin)
-      const allowedReq = new Request(allowedUrl)
-      const allowedRes = new Response(JSON.stringify(true))
-
-      console.log("ask", allowedUrl.toString(), allowedRes)
-
-      await cache.put(allowedReq, allowedRes)
-
-      {
-        await new Promise(r => setTimeout(r, 100))
-
-        const allowedUrl = new URL("/allowed", scope)
-        allowedUrl.searchParams.set("origin", origin)
-        const allowedReq = new Request(allowedUrl)
-        const allowedRes = await cache.match(allowedReq)
-
-        console.log("ask2", allowedReq, allowedRes)
-      }
-
-      const capacityUrl = new URL("/capacity", scope)
-      const capacityReq = new Request(capacityUrl)
-      const capacityRes = new Response(JSON.stringify(capacity))
-
-      await cache.put(capacityReq, capacityRes)
-    })
-
-    await pageRouter.helloOrThrow(AbortSignal.timeout(1000))
-
-    return
-  }
+  console.log(uuid, message)
 
   /**
-   * (crossOrigin ->) iframe -> serviceWorker
+   * (unknown ->) sameOrigin -> serviceWorker
    */
   if (message.method === "connect3") {
     const [origin] = message.params as [string]
@@ -74,79 +30,115 @@ self.addEventListener("message", async (event) => {
     if (originPort == null)
       return
 
-    const originRouter = new RpcRouter(originPort)
+    /**
+     * (sameOrigin ->) sameOrigin -> serviceWorker
+     */
+    if (origin === location.origin) {
+      const originRouter = new RpcRouter(originPort)
 
-    originRouter.handlers.set("kv_set", async (request) => {
-      const [scope, key, value] = request.params as [string, string, BodyInit]
+      originRouter.handlers.set("kv_ask", async (request) => {
+        const [scope, origin, capacity] = request.params as [string, string, number]
 
-      const allowedUrl = new URL("/allowed", scope)
-      allowedUrl.searchParams.set("origin", origin)
-      const allowedReq = new Request(allowedUrl)
-      const allowedRes = await cache.match(allowedReq)
-      const allowedVal = allowedRes == null ? false : await allowedRes.json() as boolean
+        const cache = await caches.open(scope)
 
-      console.log("set", allowedUrl.toString(), allowedRes)
+        const allowedUrl = new URL("/allowed", location.origin)
+        allowedUrl.searchParams.set("origin", origin)
+        const allowedReq = new Request(allowedUrl)
+        const allowedRes = new Response()
 
-      if (!allowedVal)
-        throw new Error("Not allowed")
+        console.log(uuid, "ask", allowedUrl.toString(), allowedRes)
 
-      const capacityUrl = new URL("/capacity", scope)
-      const capacityReq = new Request(capacityUrl)
-      const capacityRes = await cache.match(capacityReq)
-      const capacityNum = capacityRes == null ? 0 : await capacityRes.json() as number
+        await cache.put(allowedReq, allowedRes)
 
-      const sizeUrl = new URL("/size", scope)
-      const sizeReq = new Request(sizeUrl)
-      const sizeRes = await cache.match(sizeReq)
-      const sizeNum = sizeRes == null ? 0 : await sizeRes.json() as number
+        const capacityUrl = new URL("/capacity", location.origin)
+        const capacityReq = new Request(capacityUrl)
+        const capacityRes = new Response(JSON.stringify(capacity))
 
-      const valueUrl = new URL("/value", scope)
-      valueUrl.searchParams.set("key", key)
-      const valueReq = new Request(valueUrl)
-      const valueRes = await cache.match(valueReq)
-      const valueSize = valueRes == null ? 0 : await valueRes.arrayBuffer().then(r => r.byteLength)
+        await cache.put(capacityReq, capacityRes)
+      })
 
-      const newValueRes = new Response(value)
-      const newValueRes2 = newValueRes.clone()
-      const newValueSize = await newValueRes2.arrayBuffer().then(r => r.byteLength)
+      await originRouter.helloOrThrow(AbortSignal.timeout(1000))
 
-      const newSizeNum = sizeNum - valueSize + newValueSize
+      return
+    }
 
-      if (newSizeNum > capacityNum)
-        throw new Error("Too big")
+    if (origin !== location.origin) {
+      const originRouter = new RpcRouter(originPort)
 
-      await cache.put(valueReq, newValueRes)
-      await cache.put(sizeReq, new Response(JSON.stringify(newSizeNum)))
-    })
+      originRouter.handlers.set("kv_set", async (request) => {
+        const [scope, key, value] = request.params as [string, string, BodyInit]
 
-    originRouter.handlers.set("kv_get", async (request) => {
-      const [scope, key] = request.params as [string, string]
+        const cache = await caches.open(scope)
 
-      const allowedUrl = new URL("/allowed", scope)
-      allowedUrl.searchParams.set("origin", origin)
-      const allowedReq = new Request(allowedUrl)
-      const allowedRes = await cache.match(allowedReq)
-      const allowedVal = allowedRes == null ? false : await allowedRes.json() as boolean
+        const allowedUrl = new URL("/allowed", location.origin)
+        allowedUrl.searchParams.set("origin", origin)
+        const allowedReq = new Request(allowedUrl)
+        const allowedRes = await cache.match(allowedReq)
 
-      console.log("get", allowedUrl, allowedVal)
+        console.log(uuid, "set", allowedUrl.toString(), allowedRes)
 
-      if (allowedVal == null)
-        throw new Error("Not allowed")
+        if (allowedRes == null)
+          throw new Error("Not allowed")
 
-      const valueUrl = new URL("/value", scope)
-      valueUrl.searchParams.set("key", key)
-      const valueReq = new Request(valueUrl)
-      const valueRes = await cache.match(valueReq)
+        const capacityUrl = new URL("/capacity", location.origin)
+        const capacityReq = new Request(capacityUrl)
+        const capacityRes = await cache.match(capacityReq)
+        const capacityNum = capacityRes == null ? 0 : await capacityRes.json() as number
 
-      if (valueRes == null)
-        throw new Error("Not found")
+        const sizeUrl = new URL("/size", location.origin)
+        const sizeReq = new Request(sizeUrl)
+        const sizeRes = await cache.match(sizeReq)
+        const sizeNum = sizeRes == null ? 0 : await sizeRes.json() as number
 
-      return await valueRes.arrayBuffer()
-    })
+        const valueUrl = new URL("/value", location.origin)
+        valueUrl.searchParams.set("key", key)
+        const valueReq = new Request(valueUrl)
+        const valueRes = await cache.match(valueReq)
+        const valueSize = valueRes == null ? 0 : await valueRes.arrayBuffer().then(r => r.byteLength)
 
-    await originRouter.helloOrThrow(AbortSignal.timeout(1000))
+        const newValueRes = new Response(value)
+        const newValueRes2 = newValueRes.clone()
+        const newValueSize = await newValueRes2.arrayBuffer().then(r => r.byteLength)
 
-    return
+        const newSizeNum = sizeNum - valueSize + newValueSize
+
+        if (newSizeNum > capacityNum)
+          throw new Error("Too big")
+
+        await cache.put(valueReq, newValueRes)
+        await cache.put(sizeReq, new Response(JSON.stringify(newSizeNum)))
+      })
+
+      originRouter.handlers.set("kv_get", async (request) => {
+        const [scope, key] = request.params as [string, string]
+
+        const cache = await caches.open(scope)
+
+        const allowedUrl = new URL("/allowed", location.origin)
+        allowedUrl.searchParams.set("origin", origin)
+        const allowedReq = new Request(allowedUrl)
+        const allowedRes = await cache.match(allowedReq)
+
+        console.log("get", allowedUrl.toString(), allowedRes)
+
+        if (allowedRes == null)
+          throw new Error("Not allowed")
+
+        const valueUrl = new URL("/value", location.origin)
+        valueUrl.searchParams.set("key", key)
+        const valueReq = new Request(valueUrl)
+        const valueRes = await cache.match(valueReq)
+
+        if (valueRes == null)
+          throw new Error("Not found")
+
+        return await valueRes.arrayBuffer()
+      })
+
+      await originRouter.helloOrThrow(AbortSignal.timeout(1000))
+
+      return
+    }
   }
 })
 
