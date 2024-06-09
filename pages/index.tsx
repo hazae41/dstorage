@@ -140,6 +140,8 @@ export function KvAsk(props: {
   const { scope, origin, capacity, background, response } = props
 
   const onAllow = useCallback(async () => {
+    await document.requestStorageAccess()
+
     await background.requestOrThrow<void>({
       method: "kv_ask",
       params: [scope, origin, capacity]
