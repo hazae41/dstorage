@@ -17,6 +17,43 @@ self.addEventListener("message", async (event) => {
   console.log(uuid, message)
 
   /**
+   * sameOrigin -> serviceWorker
+   */
+  if (message.method === "connect") {
+    const [pagePort] = event.ports
+
+    if (pagePort == null)
+      return
+
+    const pageRouter = new RpcRouter(pagePort)
+
+    pageRouter.handlers.set("kv_ask", async (request) => {
+      const [scope, origin, capacity] = request.params as [string, string, number]
+
+      const cache = await caches.open(scope)
+
+      const allowedUrl = new URL("/allowed", location.origin)
+      allowedUrl.searchParams.set("origin", origin)
+      const allowedReq = new Request(allowedUrl)
+      const allowedRes = new Response()
+
+      console.log(uuid, "ask", allowedUrl.toString(), allowedRes)
+
+      await cache.put(allowedReq, allowedRes)
+
+      const capacityUrl = new URL("/capacity", location.origin)
+      const capacityReq = new Request(capacityUrl)
+      const capacityRes = new Response(JSON.stringify(capacity))
+
+      await cache.put(capacityReq, capacityRes)
+    })
+
+    await pageRouter.helloOrThrow(AbortSignal.timeout(1000))
+
+    return
+  }
+
+  /**
    * (unknown ->) sameOrigin -> serviceWorker
    */
   if (message.method === "connect3") {
@@ -29,38 +66,6 @@ self.addEventListener("message", async (event) => {
 
     if (originPort == null)
       return
-
-    /**
-     * (sameOrigin ->) sameOrigin -> serviceWorker
-     */
-    if (origin === location.origin) {
-      const originRouter = new RpcRouter(originPort)
-
-      originRouter.handlers.set("kv_ask", async (request) => {
-        const [scope, origin, capacity] = request.params as [string, string, number]
-
-        const cache = await caches.open(scope)
-
-        const allowedUrl = new URL("/allowed", location.origin)
-        allowedUrl.searchParams.set("origin", origin)
-        const allowedReq = new Request(allowedUrl)
-        const allowedRes = new Response()
-
-        console.log(uuid, "ask", allowedUrl.toString(), allowedRes)
-
-        await cache.put(allowedReq, allowedRes)
-
-        const capacityUrl = new URL("/capacity", location.origin)
-        const capacityReq = new Request(capacityUrl)
-        const capacityRes = new Response(JSON.stringify(capacity))
-
-        await cache.put(capacityReq, capacityRes)
-      })
-
-      await originRouter.helloOrThrow(AbortSignal.timeout(1000))
-
-      return
-    }
 
     if (origin !== location.origin) {
       const originRouter = new RpcRouter(originPort)

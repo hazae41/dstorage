@@ -2,32 +2,60 @@ import "@hazae41/symbol-dispose-polyfill";
 
 import { RpcRouter } from "@/libs/jsonrpc";
 import { WindowMessenger } from "@/libs/messenger";
-import { Nullable } from "@hazae41/option";
-import { useCallback, useState } from "react";
+import { useBackgroundContext } from "@/mods/comps/background";
+import { useCallback, useEffect, useState } from "react";
 
-const TARGET = "https://craft-measure-ibm-oil.trycloudflare.com"
+const TARGET = "https://stereo-acc-station-formula.trycloudflare.com"
 
 export default function Home() {
-  const [iframe, setIframe] = useState<Nullable<HTMLIFrameElement>>(null)
+  const background = useBackgroundContext()
 
-  const connect = useCallback(async () => {
-    if (iframe == null)
-      return
-    if (iframe.contentWindow == null)
+  const [connected, setConnected] = useState(false)
+
+  const pingOrThrow = useCallback(async () => {
+    while (true) {
+      try {
+        await background.requestOrThrow<boolean>({
+          method: "ping"
+        }).then(r => r.unwrap())
+
+        setConnected(true)
+      } catch (e: unknown) {
+        setConnected(false)
+
+        await new Promise(ok => setTimeout(ok, 1000))
+      }
+    }
+  }, [background])
+
+  useEffect(() => {
+    pingOrThrow().catch(console.error)
+  }, [pingOrThrow])
+
+  const connectOrThrow = useCallback(async () => {
+    if (connected)
       return
 
     const channel = new MessageChannel()
+    const window = open(`${TARGET}`, "_blank")
 
-    const iframeMessenger = new WindowMessenger(iframe.contentWindow, TARGET)
+    if (window == null)
+      return
+
+    const windowMessenger = new WindowMessenger(window, TARGET)
 
     await navigator.serviceWorker.register("/service_worker.js")
     const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 
-    await iframeMessenger.pingOrThrow()
+    await windowMessenger.pingOrThrow()
 
-    iframe.contentWindow.postMessage({ method: "connect2" }, TARGET, [channel.port1])
+    window.postMessage({ method: "connect2" }, TARGET, [channel.port1])
     serviceWorker.postMessage({ method: "connect3", params: [TARGET] }, [channel.port2])
-  }, [iframe])
+  }, [connected])
+
+  const onConnectClick = useCallback(async () => {
+    connectOrThrow()
+  }, [connectOrThrow])
 
   const onAskClick = useCallback(async () => {
     try {
@@ -54,16 +82,6 @@ export default function Home() {
       console.error(e)
     }
   }, [])
-
-  const [enabled, setEnabled] = useState(false)
-
-  const onEnableClick = useCallback(async () => {
-    setEnabled(true)
-  }, [])
-
-  const onConnectClick = useCallback(async () => {
-    connect()
-  }, [connect])
 
   const onSetClick = useCallback(async () => {
     try {
@@ -112,31 +130,24 @@ export default function Home() {
   }, [])
 
   return <main className="">
-    {enabled &&
-      <iframe
-        ref={setIframe}
-        width={0}
-        height={0}
-        src={`${TARGET}/iframe.html`} />}
     <button className="w-full"
       onClick={onAskClick}>
       Ask permission
     </button>
-    <button className="w-full"
-      onClick={onEnableClick}>
-      Enable
-    </button>
-    <button className="w-full"
-      onClick={onConnectClick}>
-      Connect
-    </button>
-    <button className="w-full"
-      onClick={onSetClick}>
-      Set value
-    </button>
-    <button className="w-full"
-      onClick={onGetClick}>
-      Get value
-    </button>
+    {!connected &&
+      <button className="w-full"
+        onClick={onConnectClick}>
+        Connect
+      </button>}
+    {connected && <>
+      <button className="w-full"
+        onClick={onSetClick}>
+        Set value
+      </button>
+      <button className="w-full"
+        onClick={onGetClick}>
+        Get value
+      </button>
+    </>}
   </main>
 }

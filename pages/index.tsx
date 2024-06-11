@@ -54,6 +54,19 @@ export default function Home() {
 
       return
     }
+
+    if (message.method === "connect2") {
+      const [parentPort] = event.ports
+
+      if (parentPort == null)
+        return
+
+      await navigator.serviceWorker.register("/service_worker.js")
+      const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
+
+      serviceWorker.postMessage({ method: "connect3", params: [event.origin] }, [parentPort])
+      return
+    }
   }, [])
 
   useEffect(() => {
@@ -66,7 +79,6 @@ export default function Home() {
 
   return <Router message={message} />
 }
-
 
 export function Router(props: {
   readonly message: Message
@@ -88,7 +100,8 @@ export function KvAsk(props: {
   const [scope, capacity] = params as [string, number]
 
   const onAllow = useCallback(async () => {
-    await document.requestStorageAccess()
+    // @ts-ignore
+    await document.requestStorageAccess({ caches: true })
 
     await background.requestOrThrow<void>({
       method: "kv_ask",

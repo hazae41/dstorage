@@ -16,6 +16,8 @@ export class RpcRouter {
   readonly resolveOnHello = new Future<void>()
   readonly resolveOnClose = new Future<unknown>()
 
+  #closed = false
+
   constructor(
     readonly port: MessagePort
   ) {
@@ -24,9 +26,15 @@ export class RpcRouter {
     port.addEventListener("message", onMessage, { passive: true })
 
     this.resolveOnClose.promise.then(() => {
+      this.#closed = true
+
       port.removeEventListener("message", onMessage)
       port.close()
     })
+  }
+
+  get closed() {
+    return this.#closed
   }
 
   async #onMessage(event: MessageEvent) {
