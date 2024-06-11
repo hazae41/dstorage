@@ -80,6 +80,24 @@ self.addEventListener("message", async (event) => {
     if (origin !== location.origin) {
       const originRouter = new RpcRouter(originPort)
 
+      originRouter.handlers.set("kv_ask", async (request) => {
+        const [scope] = request.params as [string]
+
+        const cache = await caches.open(scope)
+
+        const allowedUrl = new URL("/allowed", location.origin)
+        allowedUrl.searchParams.set("origin", origin)
+        const allowedReq = new Request(allowedUrl)
+        const allowedRes = await cache.match(allowedReq)
+
+        console.log(uuid, "ask", allowedUrl.toString(), allowedRes)
+
+        if (allowedRes == null)
+          throw new Error("Not allowed")
+
+        return
+      })
+
       originRouter.handlers.set("kv_set", async (request) => {
         const [scope, key, body, init] = request.params as [string, string, BodyInit, ResponseInit]
 
