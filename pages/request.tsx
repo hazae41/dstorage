@@ -47,24 +47,12 @@ export default function Home() {
       }
 
       parentRouter.handlers.set("kv_ask", onRequest)
+
       parentRouter.handlers.set("webauthn_kv_set", onRequest)
       parentRouter.handlers.set("webauthn_kv_get", onRequest)
 
       await parentRouter.helloOrThrow(AbortSignal.timeout(1000))
 
-      return
-    }
-
-    if (message.method === "connect2") {
-      const [parentPort] = event.ports
-
-      if (parentPort == null)
-        return
-
-      await navigator.serviceWorker.register("/service_worker.js")
-      const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
-
-      serviceWorker.postMessage({ method: "connect3", params: [event.origin] }, [parentPort])
       return
     }
   }, [])

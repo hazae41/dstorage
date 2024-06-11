@@ -13,7 +13,7 @@ export default function Home() {
   const [connected, setConnected] = useState(false)
 
   const pingOrThrow = useCallback(async () => {
-    while (true) {
+    while (!background.closed) {
       try {
         await background.requestOrThrow<boolean>({
           method: "proxy",
@@ -38,7 +38,7 @@ export default function Home() {
       return
 
     const channel = new MessageChannel()
-    const window = open(`${TARGET}`, "_blank")
+    const window = open(`${TARGET}/connect`, "_blank")
 
     if (window == null)
       return
@@ -61,7 +61,7 @@ export default function Home() {
   const onAskClick = useCallback(async () => {
     try {
       const channel = new MessageChannel()
-      const window = open(`${TARGET}`, "_blank")
+      const window = open(`${TARGET}/request`, "_blank")
 
       if (window == null)
         return

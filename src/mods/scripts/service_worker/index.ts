@@ -27,6 +27,8 @@ self.addEventListener("message", async (event) => {
 
     const pageRouter = new RpcRouter(pagePort)
 
+    pageRouter.handlers.set("sw_size", () => self.clients.matchAll().then(r => r.length))
+
     pageRouter.handlers.set("kv_ask", async (request) => {
       const [scope, origin, capacity] = request.params as [string, string, number]
 

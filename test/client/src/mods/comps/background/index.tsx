@@ -33,6 +33,8 @@ export function BackgroundProvider(props: {
     await backgroundRouter.helloOrThrow(AbortSignal.timeout(1000))
 
     setBackground(backgroundRouter)
+
+    backgroundRouter.resolveOnClose.promise.then(() => setBackground(undefined))
   }, [])
 
   useEffect(() => {
