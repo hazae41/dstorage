@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
 
-export function Client(props: {
+export function ClientOnly(props: {
   readonly children?: ReactNode
 }) {
   const { children } = props
