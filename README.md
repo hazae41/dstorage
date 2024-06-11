@@ -83,7 +83,7 @@ function kv_ask(name: string): void
 This will ask user-interaction for access to `name`
 
 ```tsx
-function kv_set(name: string, key: string, body: BodyInit, headers: HeadersInit): void
+function kv_set(name: string, key: string, body: BodyInit, init: ResponseInit): void
 ```
 
 This will set `key` to `value` in `name`
