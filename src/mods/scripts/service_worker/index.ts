@@ -156,4 +156,4 @@ self.addEventListener("message", async (event) => {
   }
 })
 
-// self.skipWaiting()
+self.skipWaiting()
