@@ -4,7 +4,7 @@ Proof-of-concept of a public and secure origin-bound storage for your origin-les
 
 ## Why
 
-This allows your website to use the storage (localStorage, IndexedDB, WebAuthn) of another origin.
+This allows your website to use the storage (KeyValue and WebAuthn) of another origin.
 
 This is particularily useful when your website doesn't have a single origin.
 
@@ -74,7 +74,7 @@ const { id, result, error } = event.data
 
 This is a key-value storage using Cache API.
 
-The access is scoped by user-interaction
+The access requires user-interaction
 
 ```tsx
 function kv_ask(scope: string, capacity: number): void
