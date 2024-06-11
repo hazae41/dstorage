@@ -16,6 +16,8 @@ export class RpcRouter {
   readonly resolveOnHello = new Future<void>()
   readonly resolveOnClose = new Future<unknown>()
 
+  #closed = false
+
   constructor(
     readonly port: MessagePort
   ) {
@@ -24,9 +26,15 @@ export class RpcRouter {
     port.addEventListener("message", onMessage, { passive: true })
 
     this.resolveOnClose.promise.then(() => {
+      this.#closed = true
+
       port.removeEventListener("message", onMessage)
       port.close()
     })
+  }
+
+  get closed() {
+    return this.#closed
   }
 
   async #onMessage(event: MessageEvent) {
@@ -68,8 +76,12 @@ export class RpcRouter {
       const result = await handler(request)
       const response = new RpcOk(request.id, result)
 
-      if (result instanceof ArrayBuffer) {
-        this.port.postMessage(response, [result])
+      if (result instanceof Response) {
+        const status = result.status
+        const headers = [...result.headers]
+        const body = await result.arrayBuffer()
+
+        this.port.postMessage({ status, headers, body }, [body])
         return
       } else {
         this.port.postMessage(response)

@@ -18,23 +18,33 @@ Or you just want some basic versioning like https://1.myapp.org and https://2.my
 
 ## Communication
 
-A few modes of cross-origin communication are available depending on your use-case.
+A few modes of cross-origin communication are available depending on your constraints.
 
-### Service-worker to service-worker (recommended)
+### Service-worker to service-worker communication (page-bootstrapped)
 
-If you need APIs available on a service-worker (e.g. IndexedDB), you can use this mode.
+You just need to open a server page to bootstrap the communication from your service-worker to the server service-worker.
 
-You can use cross-origin service-worker to service-worker communication bootstrapped by an iframe.
-
-You just need a page to bootstrap the communication from your service-worker to the other service-worker.
+You must keep one server page open in order to keep the server service-worker running.
 
 This communication continues to work even a few seconds after all pages are closed (~30 seconds on Chromium).
 
 When the communication is closed, just reopen a new bootstrap page.
 
-### Page to service-worker
+### Page to service-worker communication (page-bootstrapped)
 
-This is the same as above but this time the communication is closed once you close the page.
+This is the same as above but this time the communication is closed once you close the client page.
+
+### Service-worker to service-worker communication (iframe-bootstrapped)
+
+Only available on Chrome with `document.requestStorageAccess({ caches: true })`. 
+
+You use an iframe to bootstrap the communication and maintain the server service-worker running.
+
+No page is opened except when asking for user interaction.
+
+### Page to service-worker communication (iframe-bootstrapped)
+
+This is the same as above but this time the communication is closed once you close the client page.
 
 ## APIs
 
@@ -73,7 +83,7 @@ function kv_ask(name: string): void
 This will ask user-interaction for access to `name`
 
 ```tsx
-function kv_set(name: string, key: string, value: BodyInit): void
+function kv_set(name: string, key: string, body: BodyInit, headers: HeadersInit): void
 ```
 
 This will set `key` to `value` in `name`

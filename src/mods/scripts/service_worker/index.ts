@@ -71,7 +71,7 @@ self.addEventListener("message", async (event) => {
       const originRouter = new RpcRouter(originPort)
 
       originRouter.handlers.set("kv_set", async (request) => {
-        const [scope, key, value] = request.params as [string, string, BodyInit]
+        const [scope, key, body, init] = request.params as [string, string, BodyInit, ResponseInit]
 
         const cache = await caches.open(scope)
 
@@ -101,7 +101,7 @@ self.addEventListener("message", async (event) => {
         const valueRes = await cache.match(valueReq)
         const valueSize = valueRes == null ? 0 : await valueRes.arrayBuffer().then(r => r.byteLength)
 
-        const newValueRes = new Response(value)
+        const newValueRes = new Response(body, init)
         const newValueRes2 = newValueRes.clone()
         const newValueSize = await newValueRes2.arrayBuffer().then(r => r.byteLength)
 
@@ -137,7 +137,7 @@ self.addEventListener("message", async (event) => {
         if (valueRes == null)
           throw new Error("Not found")
 
-        return await valueRes.arrayBuffer()
+        return valueRes
       })
 
       await originRouter.helloOrThrow(AbortSignal.timeout(1000))

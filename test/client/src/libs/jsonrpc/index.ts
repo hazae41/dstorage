@@ -76,8 +76,12 @@ export class RpcRouter {
       const result = await handler(request)
       const response = new RpcOk(request.id, result)
 
-      if (result instanceof ArrayBuffer) {
-        this.port.postMessage(response, [result])
+      if (result instanceof Response) {
+        const status = result.status
+        const headers = [...result.headers]
+        const body = await result.arrayBuffer()
+
+        this.port.postMessage({ status, headers, body }, [body])
         return
       } else {
         this.port.postMessage(response)
