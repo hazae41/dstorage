@@ -16,13 +16,14 @@ export default function Home() {
     while (true) {
       try {
         await background.requestOrThrow<boolean>({
-          method: "ping"
+          method: "proxy",
+          params: [{ method: "hello" }]
         }).then(r => r.unwrap())
 
         setConnected(true)
       } catch (e: unknown) {
         setConnected(false)
-
+      } finally {
         await new Promise(ok => setTimeout(ok, 1000))
       }
     }
@@ -97,8 +98,11 @@ export default function Home() {
       await backgroundRouter.helloOrThrow(AbortSignal.timeout(1000))
 
       await backgroundRouter.requestOrThrow<void>({
-        method: "kv_set",
-        params: ["example", "buffer", new Uint8Array([1, 2, 3, 4, 5])],
+        method: "proxy",
+        params: [{
+          method: "kv_set",
+          params: ["example", "buffer", new Uint8Array([1, 2, 3, 4, 5]), { status: 200 }],
+        }]
       }).then(r => r.unwrap())
     } catch (e: unknown) {
       console.error(e)
@@ -118,12 +122,15 @@ export default function Home() {
 
       await backgroundRouter.helloOrThrow(AbortSignal.timeout(1000))
 
-      const buffer = await backgroundRouter.requestOrThrow<ArrayBuffer>({
-        method: "kv_get",
-        params: ["example", "buffer"],
+      const response = await backgroundRouter.requestOrThrow<{}>({
+        method: "proxy",
+        params: [{
+          method: "kv_get",
+          params: ["example", "buffer"],
+        }]
       }).then(r => r.unwrap())
 
-      console.log(buffer)
+      console.log(response)
     } catch (e: unknown) {
       console.error(e)
     }

@@ -22,21 +22,13 @@ addEventListener("message", async (event) => {
 
     const pageRouter = new RpcRouter(pagePort)
 
-    const onProxiedRequest = async (request: RpcRequestPreinit) => {
-      if (targetRouter == null)
-        return
-      return await targetRouter.requestOrThrow(request, [], AbortSignal.timeout(1000)).then(r => r.unwrap())
-    }
+    pageRouter.handlers.set("proxy", async (request: RpcRequestPreinit) => {
+      const [subrequest, transferables] = request.params as [RpcRequestPreinit, Transferable[]]
 
-    pageRouter.handlers.set("kv_set", onProxiedRequest)
-    pageRouter.handlers.set("kv_get", onProxiedRequest)
-
-    pageRouter.handlers.set("ping", () => {
       if (targetRouter == null)
-        throw new Error("Not connected")
-      if (targetRouter.closed)
-        throw new Error("Not connected")
-      return
+        throw new Error(`Not connected`)
+
+      return await targetRouter.requestOrThrow(subrequest, transferables, AbortSignal.timeout(1000)).then(r => r.unwrap())
     })
 
     await pageRouter.helloOrThrow(AbortSignal.timeout(1000))

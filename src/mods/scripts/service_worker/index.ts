@@ -133,7 +133,7 @@ self.addEventListener("message", async (event) => {
         const allowedReq = new Request(allowedUrl)
         const allowedRes = await cache.match(allowedReq)
 
-        console.log("get", allowedUrl.toString(), allowedRes)
+        console.log(uuid, "get", allowedUrl.toString(), allowedRes)
 
         if (allowedRes == null)
           throw new Error("Not allowed")
