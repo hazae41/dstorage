@@ -43,9 +43,17 @@ self.addEventListener("message", async (event) => {
 
       const capacityUrl = new URL("/capacity", location.origin)
       const capacityReq = new Request(capacityUrl)
-      const capacityRes = new Response(JSON.stringify(capacity))
 
-      await cache.put(capacityReq, capacityRes)
+      const oldCapacityRes = await cache.match(capacityReq)
+      const oldCapacityNum = oldCapacityRes == null ? 0 : await oldCapacityRes.json() as number
+
+      const newCapacityNum = capacity
+      const newCapacityRes = new Response(JSON.stringify(newCapacityNum))
+
+      if (newCapacityNum > oldCapacityNum)
+        await cache.put(capacityReq, newCapacityRes)
+
+      return
     })
 
     await pageRouter.helloOrThrow(AbortSignal.timeout(1000))
@@ -85,27 +93,28 @@ self.addEventListener("message", async (event) => {
         if (allowedRes == null)
           throw new Error("Not allowed")
 
+        const valueUrl = new URL("/value", location.origin)
+        valueUrl.searchParams.set("key", key)
+        const valueReq = new Request(valueUrl)
+
+        const oldValueRes = await cache.match(valueReq)
+        const oldValueSize = oldValueRes == null ? 0 : await oldValueRes.arrayBuffer().then(r => r.byteLength)
+
+        const newValueRes = new Response(body, init)
+        const newValueSize = await newValueRes.clone().arrayBuffer().then(r => r.byteLength)
+
+        const sizeUrl = new URL("/size", location.origin)
+        const sizeReq = new Request(sizeUrl)
+
+        const oldSizeRes = await cache.match(sizeReq)
+        const oldSizeNum = oldSizeRes == null ? 0 : await oldSizeRes.json() as number
+
+        const newSizeNum = oldSizeNum - oldValueSize + newValueSize
+
         const capacityUrl = new URL("/capacity", location.origin)
         const capacityReq = new Request(capacityUrl)
         const capacityRes = await cache.match(capacityReq)
         const capacityNum = capacityRes == null ? 0 : await capacityRes.json() as number
-
-        const sizeUrl = new URL("/size", location.origin)
-        const sizeReq = new Request(sizeUrl)
-        const sizeRes = await cache.match(sizeReq)
-        const sizeNum = sizeRes == null ? 0 : await sizeRes.json() as number
-
-        const valueUrl = new URL("/value", location.origin)
-        valueUrl.searchParams.set("key", key)
-        const valueReq = new Request(valueUrl)
-        const valueRes = await cache.match(valueReq)
-        const valueSize = valueRes == null ? 0 : await valueRes.arrayBuffer().then(r => r.byteLength)
-
-        const newValueRes = new Response(body, init)
-        const newValueRes2 = newValueRes.clone()
-        const newValueSize = await newValueRes2.arrayBuffer().then(r => r.byteLength)
-
-        const newSizeNum = sizeNum - valueSize + newValueSize
 
         if (newSizeNum > capacityNum)
           throw new Error("Too big")
