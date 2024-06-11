@@ -35,6 +35,10 @@ export function BackgroundProvider(props: {
     setBackground(backgroundRouter)
 
     backgroundRouter.resolveOnClose.promise.then(() => setBackground(undefined))
+
+    setInterval(() => {
+      serviceWorker.postMessage({ method: "ping" })
+    }, 1000)
   }, [])
 
   useEffect(() => {

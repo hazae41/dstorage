@@ -16,6 +16,13 @@ self.addEventListener("message", async (event) => {
 
   console.log(uuid, message)
 
+  if (message.method === "ping") {
+    if (event.source == null)
+      return
+    event.source.postMessage({ method: "pong" })
+    return
+  }
+
   /**
    * sameOrigin -> serviceWorker
    */

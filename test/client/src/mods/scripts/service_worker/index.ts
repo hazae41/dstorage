@@ -14,6 +14,13 @@ addEventListener("message", async (event) => {
     return
   const message = event.data as RpcRequestPreinit
 
+  if (message.method === "ping") {
+    if (event.source == null)
+      return
+    event.source.postMessage({ method: "pong" })
+    return
+  }
+
   if (message.method === "connect") {
     const [pagePort] = event.ports
 
