@@ -77,22 +77,22 @@ This is a key-value storage using Cache API.
 The access is scoped by user-interaction
 
 ```tsx
-function kv_ask(name: string): void
+function kv_ask(scope: string, capacity: number): void
 ```
 
-This will ask user-interaction for access to `name`
+This will ask user-interaction for access to `scope` and grow it to `capacity` bytes
 
 ```tsx
-function kv_set(name: string, key: string, body: BodyInit, init: ResponseInit): void
+function kv_set(scope: string, key: string, body: BodyInit, init: ResponseInit): void
 ```
 
-This will set `key` to `value` in `name`
+This will set `key` to `value` in `scope`
 
 ```tsx
-function kv_get(name: string, key: string): unknown
+function kv_get(scope: string, key: string): unknown
 ```
 
-This will return `value` from `key` in `name`
+This will return `value` from `key` in `scope`
 
 ### WebAuthn KV
 
