@@ -4,6 +4,7 @@ import { RpcRouter } from "@/libs/jsonrpc";
 import { useBackgroundContext } from "@/mods/comps/background";
 import { Future } from "@hazae41/future";
 import { RpcRequest, RpcRequestPreinit } from "@hazae41/jsonrpc";
+import { Optional } from "@hazae41/option";
 import { useCallback, useEffect, useState } from "react";
 
 export interface Message {
@@ -129,6 +130,90 @@ export function KvAsk(props: {
       </span>
       <span className="">
         {`?`}
+      </span>
+    </div>
+    <div className="flex items-center gap-2">
+      <button className="p-1 border rounded-xl"
+        onClick={onAllow}>
+        Allow
+      </button>
+      <button className="p-1 border rounded-xl"
+        onClick={onReject}>
+        Reject
+      </button>
+    </div>
+  </div>
+}
+
+export function WebAuthnCreate(props: {
+  readonly message: Message
+}) {
+  const { message } = props
+  const { origin, params, future } = message
+  const [options] = params as [Optional<CredentialCreationOptions>]
+
+  const onAllow = useCallback(async () => {
+    const credential = await navigator.credentials.create(options)
+
+    future.resolve(credential)
+  }, [future, options])
+
+  const onReject = useCallback(async () => {
+    future.reject(new Error(`User rejected`))
+  }, [future])
+
+  return <div className="p-4 w-[1000px]">
+    <div className="flex flex-wrap items-center gap-1">
+      <span>
+        {`Do you want to allow`}
+      </span>
+      <span className="p-1 border rounded-xl">
+        {origin}
+      </span>
+      <span className="">
+        {`to create a new credential?`}
+      </span>
+    </div>
+    <div className="flex items-center gap-2">
+      <button className="p-1 border rounded-xl"
+        onClick={onAllow}>
+        Allow
+      </button>
+      <button className="p-1 border rounded-xl"
+        onClick={onReject}>
+        Reject
+      </button>
+    </div>
+  </div>
+}
+
+export function WebAuthnGet(props: {
+  readonly message: Message
+}) {
+  const { message } = props
+  const { origin, params, future } = message
+  const [options] = params as [Optional<CredentialRequestOptions>]
+
+  const onAllow = useCallback(async () => {
+    const credential = await navigator.credentials.get(options)
+
+    future.resolve(credential)
+  }, [future, options])
+
+  const onReject = useCallback(async () => {
+    future.reject(new Error(`User rejected`))
+  }, [future])
+
+  return <div className="p-4 w-[1000px]">
+    <div className="flex flex-wrap items-center gap-1">
+      <span>
+        {`Do you want to allow`}
+      </span>
+      <span className="p-1 border rounded-xl">
+        {origin}
+      </span>
+      <span className="">
+        {`to get a credential?`}
       </span>
     </div>
     <div className="flex items-center gap-2">

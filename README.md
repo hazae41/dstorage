@@ -94,18 +94,18 @@ function kv_get(scope: string, key: string): unknown
 
 This will return `value` from `key` in `scope`
 
-### WebAuthn KV
+### WebAuthn
 
-This is a key-value storage using WebAuthn.
+This is the WebAuthn API.
 
 This will open a page requiring user confirmation.
 
 ```tsx
-function webAuthn_kv_set(name: string, key: string, value: Nullable<Uint8Array>): void
+function webauthn_create(options?: CredentialCreationOptions): Uint8Array
 ```
 
 ```tsx
-function webAuthn_kv_get(name: string, key: string): unknown
+function webauthn_get(options?: CredentialRequestOptions): Uint8Array
 ```
 
 ## Limitations
