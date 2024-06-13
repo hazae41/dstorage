@@ -5,7 +5,7 @@ import { WindowMessenger } from "@/libs/messenger";
 import { useBackgroundContext } from "@/mods/comps/background";
 import { useCallback, useEffect, useState } from "react";
 
-const TARGET = "https://stereo-acc-station-formula.trycloudflare.com"
+const TARGET = "https://integrate-bookstore-remote-juice.trycloudflare.com"
 
 export default function Home() {
   const background = useBackgroundContext()
@@ -61,7 +61,7 @@ export default function Home() {
   const onAskClick = useCallback(async () => {
     try {
       const channel = new MessageChannel()
-      const window = open(`${TARGET}/request`, "_blank", "width=100,height=100")
+      const window = open(`${TARGET}/request`, "_blank")
 
       if (window == null)
         return

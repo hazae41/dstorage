@@ -103,32 +103,43 @@ export function KvAsk(props: {
 
   const onReject = useCallback(async () => {
     future.reject(new Error(`User rejected`))
+
+    close()
   }, [future])
 
-  return <div>
-    <div>
-      {`Do you want to allow`}
+  return <div className="p-4 w-[1000px]">
+    <div className="flex flex-wrap items-center gap-1">
+      <span>
+        {`Do you want to allow`}
+      </span>
+      <span className="p-1 border rounded-xl">
+        {origin}
+      </span>
+      <span className="">
+        {`to access up to`}
+      </span>
+      <span className="p-1 border rounded-xl">
+        {capacity / 1_000_000} MB
+      </span>
+      <span className="">
+        {`in`}
+      </span>
+      <span className="p-1 border rounded-xl">
+        {scope}
+      </span>
+      <span className="">
+        {`?`}
+      </span>
     </div>
-    <div className="">
-      {origin}
+    <div className="flex items-center gap-2">
+      <button className="p-1 border rounded-xl"
+        onClick={onAllow}>
+        Allow
+      </button>
+      <button className="p-1 border rounded-xl"
+        onClick={onReject}>
+        Reject
+      </button>
     </div>
-    <div className="">
-      {`to access up to`}
-    </div>
-    <div className="">
-      {capacity / 1_000_000} MB
-    </div>
-    <div className="">
-      {`in`}
-    </div>
-    <div className="">
-      {scope}
-    </div>
-    <button onClick={onAllow}>
-      Allow
-    </button>
-    <button onClick={onReject}>
-      Reject
-    </button>
   </div>
 }
