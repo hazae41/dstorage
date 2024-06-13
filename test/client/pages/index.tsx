@@ -5,7 +5,7 @@ import { WindowMessenger } from "@/libs/messenger";
 import { useBackgroundContext } from "@/mods/comps/background";
 import { useCallback, useEffect, useState } from "react";
 
-const TARGET = "https://integrate-bookstore-remote-juice.trycloudflare.com"
+const TARGET = new URL("https://usb-za-caring-childhood.trycloudflare.com")
 
 export default function Home() {
   const background = useBackgroundContext()
@@ -38,20 +38,20 @@ export default function Home() {
       return
 
     const channel = new MessageChannel()
-    const window = open(`${TARGET}/connect`, "_blank", "width=100,height=100")
+    const window = open(`${TARGET.origin}/connect`, "_blank", "width=100,height=100")
 
     if (window == null)
       return
 
-    const windowMessenger = new WindowMessenger(window, TARGET)
+    const windowMessenger = new WindowMessenger(window, TARGET.origin)
 
     await navigator.serviceWorker.register("/service_worker.js")
     const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 
     await windowMessenger.pingOrThrow()
 
-    window.postMessage({ method: "connect2" }, TARGET, [channel.port1])
-    serviceWorker.postMessage({ method: "connect3", params: [TARGET] }, [channel.port2])
+    window.postMessage({ method: "connect2" }, TARGET.origin, [channel.port1])
+    serviceWorker.postMessage({ method: "connect3", params: [TARGET.origin] }, [channel.port2])
   }, [connected])
 
   const onConnectClick = useCallback(async () => {
@@ -61,17 +61,17 @@ export default function Home() {
   const onAskClick = useCallback(async () => {
     try {
       const channel = new MessageChannel()
-      const window = open(`${TARGET}/request`, "_blank")
+      const window = open(`${TARGET.origin}/request`, "_blank")
 
       if (window == null)
         return
 
-      const windowMessenger = new WindowMessenger(window, TARGET)
+      const windowMessenger = new WindowMessenger(window, TARGET.origin)
       const windowRouter = new RpcRouter(channel.port1)
 
       await windowMessenger.pingOrThrow()
 
-      window.postMessage({ method: "connect" }, TARGET, [channel.port2])
+      window.postMessage({ method: "connect" }, TARGET.origin, [channel.port2])
 
       await windowRouter.helloOrThrow(AbortSignal.timeout(1000))
 
@@ -84,57 +84,130 @@ export default function Home() {
     }
   }, [])
 
+  const setOrThrow = useCallback(async (scope: string, key: string, body: unknown, init: unknown) => {
+    const channel = new MessageChannel()
+
+    await navigator.serviceWorker.register("/service_worker.js")
+    const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
+
+    const backgroundRouter = new RpcRouter(channel.port1)
+
+    serviceWorker.postMessage({ method: "connect" }, [channel.port2])
+
+    await backgroundRouter.helloOrThrow(AbortSignal.timeout(1000))
+
+    await backgroundRouter.requestOrThrow<void>({
+      method: "proxy",
+      params: [{
+        method: "kv_set",
+        params: [scope, key, body, init],
+      }]
+    }).then(r => r.unwrap())
+  }, [])
+
   const onSetClick = useCallback(async () => {
     try {
-      const channel = new MessageChannel()
-
-      await navigator.serviceWorker.register("/service_worker.js")
-      const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
-
-      const backgroundRouter = new RpcRouter(channel.port1)
-
-      serviceWorker.postMessage({ method: "connect" }, [channel.port2])
-
-      await backgroundRouter.helloOrThrow(AbortSignal.timeout(1000))
-
-      await backgroundRouter.requestOrThrow<void>({
-        method: "proxy",
-        params: [{
-          method: "kv_set",
-          params: ["example", "buffer", new Uint8Array([1, 2, 3, 4, 5]), { status: 200 }],
-        }]
-      }).then(r => r.unwrap())
+      await setOrThrow("example", "buffer", new Uint8Array([1, 2, 3, 4, 5]), { status: 200 })
     } catch (e: unknown) {
       console.error(e)
     }
+  }, [setOrThrow])
+
+  const getOrThrow = useCallback(async (scope: string, key: string) => {
+    const channel = new MessageChannel()
+
+    await navigator.serviceWorker.register("/service_worker.js")
+    const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
+
+    const backgroundRouter = new RpcRouter(channel.port1)
+
+    serviceWorker.postMessage({ method: "connect" }, [channel.port2])
+
+    await backgroundRouter.helloOrThrow(AbortSignal.timeout(1000))
+
+    const response = await backgroundRouter.requestOrThrow<{ body: ArrayBuffer }>({
+      method: "proxy",
+      params: [{
+        method: "kv_get",
+        params: [scope, key],
+      }]
+    }).then(r => r.unwrap())
+
+    return response
   }, [])
 
   const onGetClick = useCallback(async () => {
     try {
-      const channel = new MessageChannel()
-
-      await navigator.serviceWorker.register("/service_worker.js")
-      const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
-
-      const backgroundRouter = new RpcRouter(channel.port1)
-
-      serviceWorker.postMessage({ method: "connect" }, [channel.port2])
-
-      await backgroundRouter.helloOrThrow(AbortSignal.timeout(1000))
-
-      const response = await backgroundRouter.requestOrThrow<{}>({
-        method: "proxy",
-        params: [{
-          method: "kv_get",
-          params: ["example", "buffer"],
-        }]
-      }).then(r => r.unwrap())
+      const response = await getOrThrow("example", "buffer")
 
       console.log(response)
     } catch (e: unknown) {
       console.error(e)
     }
-  }, [])
+  }, [getOrThrow])
+
+  const onWebAuthnCreateClick = useCallback(async () => {
+    try {
+      const channel = new MessageChannel()
+      const window = open(`${TARGET.origin}/request`, "_blank")
+
+      if (window == null)
+        return
+
+      const windowMessenger = new WindowMessenger(window, TARGET.origin)
+      const windowRouter = new RpcRouter(channel.port1)
+
+      await windowMessenger.pingOrThrow()
+
+      window.postMessage({ method: "connect" }, TARGET.origin, [channel.port2])
+
+      await windowRouter.helloOrThrow(AbortSignal.timeout(1000))
+
+      const data = new Uint8Array([1, 2, 3, 4, 5])
+
+      const handle = await windowRouter.requestOrThrow<any>({
+        method: "webauthn_storage_create",
+        params: ["Example", data],
+      }, [], AbortSignal.timeout(60_000)).then(r => r.unwrap())
+
+      await setOrThrow("example", "handle", handle, { status: 200 })
+
+      console.log("Created credential", data)
+    } catch (e: unknown) {
+      console.error(e)
+    }
+  }, [setOrThrow])
+
+  const onWebAuthnGetClick = useCallback(async () => {
+    try {
+      const response = await getOrThrow("example", "handle")
+      const handle = new Uint8Array(response.body)
+
+      const channel = new MessageChannel()
+      const window = open(`${TARGET.origin}/request`, "_blank")
+
+      if (window == null)
+        return
+
+      const windowMessenger = new WindowMessenger(window, TARGET.origin)
+      const windowRouter = new RpcRouter(channel.port1)
+
+      await windowMessenger.pingOrThrow()
+
+      window.postMessage({ method: "connect" }, TARGET.origin, [channel.port2])
+
+      await windowRouter.helloOrThrow(AbortSignal.timeout(1000))
+
+      const data = await windowRouter.requestOrThrow<any>({
+        method: "webauthn_storage_get",
+        params: [handle],
+      }, [], AbortSignal.timeout(60_000)).then(r => r.unwrap())
+
+      console.log("Retrieved credential", data)
+    } catch (e: unknown) {
+      console.error(e)
+    }
+  }, [getOrThrow])
 
   return <main className="">
     <button className="w-full"
@@ -154,6 +227,14 @@ export default function Home() {
       <button className="w-full"
         onClick={onGetClick}>
         Get value
+      </button>
+      <button className="w-full"
+        onClick={onWebAuthnCreateClick}>
+        Create WebAuthn
+      </button>
+      <button className="w-full"
+        onClick={onWebAuthnGetClick}>
+        Get WebAuthn
       </button>
     </>}
   </main>

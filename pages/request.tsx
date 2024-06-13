@@ -4,7 +4,7 @@ import { RpcRouter } from "@/libs/jsonrpc";
 import { useBackgroundContext } from "@/mods/comps/background";
 import { Future } from "@hazae41/future";
 import { RpcRequest, RpcRequestPreinit } from "@hazae41/jsonrpc";
-import { Optional } from "@hazae41/option";
+import { WebAuthnStorage } from "@hazae41/webauthnstorage";
 import { useCallback, useEffect, useState } from "react";
 
 export interface Message {
@@ -37,6 +37,7 @@ export default function Home() {
       const parentRouter = new RpcRouter(parentPort)
 
       const onRequest = async (request: RpcRequest<unknown>) => {
+        console.log("!!!", request)
         const { method, params } = request
 
         const origin = event.origin
@@ -48,9 +49,8 @@ export default function Home() {
       }
 
       parentRouter.handlers.set("kv_ask", onRequest)
-
-      parentRouter.handlers.set("webauthn_kv_set", onRequest)
-      parentRouter.handlers.set("webauthn_kv_get", onRequest)
+      parentRouter.handlers.set("webauthn_storage_create", onRequest)
+      parentRouter.handlers.set("webauthn_storage_get", onRequest)
 
       await parentRouter.helloOrThrow(AbortSignal.timeout(1000))
 
@@ -76,6 +76,10 @@ export function Router(props: {
 
   if (message.method === "kv_ask")
     return <KvAsk message={message} />
+  if (message.method === "webauthn_storage_create")
+    return <WebAuthnStorageCreate message={message} />
+  if (message.method === "webauthn_storage_get")
+    return <WebAuthnStorageGet message={message} />
 
   return null
 }
@@ -145,21 +149,25 @@ export function KvAsk(props: {
   </div>
 }
 
-export function WebAuthnCreate(props: {
+export function WebAuthnStorageCreate(props: {
   readonly message: Message
 }) {
   const { message } = props
   const { origin, params, future } = message
-  const [options] = params as [Optional<CredentialCreationOptions>]
+  const [name, data] = params as [string, Uint8Array]
 
   const onAllow = useCallback(async () => {
-    const credential = await navigator.credentials.create(options)
+    const handle = await WebAuthnStorage.createOrThrow(name, data)
 
-    future.resolve(credential)
-  }, [future, options])
+    future.resolve(handle)
+
+    close()
+  }, [future, name, data])
 
   const onReject = useCallback(async () => {
     future.reject(new Error(`User rejected`))
+
+    close()
   }, [future])
 
   return <div className="p-4 w-[1000px]">
@@ -187,21 +195,25 @@ export function WebAuthnCreate(props: {
   </div>
 }
 
-export function WebAuthnGet(props: {
+export function WebAuthnStorageGet(props: {
   readonly message: Message
 }) {
   const { message } = props
   const { origin, params, future } = message
-  const [options] = params as [Optional<CredentialRequestOptions>]
+  const [handle] = params as [Uint8Array]
 
   const onAllow = useCallback(async () => {
-    const credential = await navigator.credentials.get(options)
+    const data = await WebAuthnStorage.getOrThrow(handle)
 
-    future.resolve(credential)
-  }, [future, options])
+    future.resolve(data)
+
+    close()
+  }, [future, handle])
 
   const onReject = useCallback(async () => {
     future.reject(new Error(`User rejected`))
+
+    close()
   }, [future])
 
   return <div className="p-4 w-[1000px]">

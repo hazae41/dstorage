@@ -96,16 +96,16 @@ This will return `value` from `key` in `scope`
 
 ### WebAuthn
 
-This is the WebAuthn API.
+This is a remote version of [WebAuthnStorage](https://github.com/hazae41/webauthnstorage).
 
 This will open a page requiring user confirmation.
 
 ```tsx
-function webauthn_create(options?: CredentialCreationOptions): Uint8Array
+function webauthn_storage_create(name: string, data: Uint8Array): Uint8Array
 ```
 
 ```tsx
-function webauthn_get(options?: CredentialRequestOptions): Uint8Array
+function webauthn_storage_get(handle: Uint8Array): Uint8Array
 ```
 
 ## Limitations
