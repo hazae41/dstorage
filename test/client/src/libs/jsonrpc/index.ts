@@ -82,8 +82,6 @@ export class RpcRouter {
         const body = await result.arrayBuffer()
         const response = new RpcOk(request.id, { status, headers, body })
 
-        console.log(response)
-
         this.port.postMessage(response, [body])
         return
       } else {

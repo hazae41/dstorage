@@ -27,8 +27,7 @@ const nextConfig = {
     rmSync("./.webpack", { force: true, recursive: true })
 
     promise = Promise.all([
-      compileServiceWorker(config, options),
-      compileIframe(config, options)
+      compileServiceWorker(config, options)
     ])
 
     return config
@@ -75,30 +74,6 @@ async function compileServiceWorker(config, options) {
     output: {
       path: path.join(process.cwd(), ".webpack"),
       filename: "service_worker.js"
-    },
-    optimization: {
-      minimize: true,
-      minimizer: [new TerserPlugin()]
-    }
-  })
-}
-
-/**
- * @param {import("next/dist/server/config-shared").WebpackConfigContext} options
- */
-async function compileIframe(config, options) {
-  await compile("iframe", {
-    devtool: false,
-    target: "web",
-    mode: config.mode,
-    resolve: config.resolve,
-    resolveLoader: config.resolveLoader,
-    module: config.module,
-    plugins: config.plugins,
-    entry: "./src/mods/scripts/iframe/index.ts",
-    output: {
-      path: path.join(process.cwd(), ".webpack"),
-      filename: "iframe.js"
     },
     optimization: {
       minimize: true,

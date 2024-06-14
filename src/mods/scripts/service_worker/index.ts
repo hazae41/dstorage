@@ -14,8 +14,6 @@ self.addEventListener("message", async (event) => {
     return
   const message = event.data as RpcRequestPreinit
 
-  console.log(uuid, message)
-
   if (message.method === "ping") {
     if (event.source == null)
       return
@@ -45,8 +43,6 @@ self.addEventListener("message", async (event) => {
       allowedUrl.searchParams.set("origin", origin)
       const allowedReq = new Request(allowedUrl)
       const allowedRes = new Response()
-
-      console.log(uuid, "ask", allowedUrl.toString(), allowedRes)
 
       await cache.put(allowedReq, allowedRes)
 
@@ -97,8 +93,6 @@ self.addEventListener("message", async (event) => {
         const allowedReq = new Request(allowedUrl)
         const allowedRes = await cache.match(allowedReq)
 
-        console.log(uuid, "ask", allowedUrl.toString(), allowedRes)
-
         if (allowedRes == null)
           throw new Error("Not allowed")
 
@@ -114,8 +108,6 @@ self.addEventListener("message", async (event) => {
         allowedUrl.searchParams.set("origin", origin)
         const allowedReq = new Request(allowedUrl)
         const allowedRes = await cache.match(allowedReq)
-
-        console.log(uuid, "set", allowedUrl.toString(), allowedRes)
 
         if (allowedRes == null)
           throw new Error("Not allowed")
@@ -159,8 +151,6 @@ self.addEventListener("message", async (event) => {
         allowedUrl.searchParams.set("origin", origin)
         const allowedReq = new Request(allowedUrl)
         const allowedRes = await cache.match(allowedReq)
-
-        console.log(uuid, "get", allowedUrl.toString(), allowedRes)
 
         if (allowedRes == null)
           throw new Error("Not allowed")

@@ -37,7 +37,6 @@ export default function Home() {
       const parentRouter = new RpcRouter(parentPort)
 
       const onRequest = async (request: RpcRequest<unknown>) => {
-        console.log("!!!", request)
         const { method, params } = request
 
         const origin = event.origin
@@ -93,9 +92,6 @@ export function KvAsk(props: {
   const [scope, capacity] = params as [string, number]
 
   const onAllow = useCallback(async () => {
-    // @ts-ignore
-    await document.requestStorageAccess({ caches: true })
-
     await background.requestOrThrow<void>({
       method: "kv_ask",
       params: [scope, origin, capacity]
