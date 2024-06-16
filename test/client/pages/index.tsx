@@ -6,7 +6,7 @@ import { WindowMessenger } from "@/libs/messenger";
 import { useBackgroundContext } from "@/mods/comps/background";
 import { useCallback, useEffect, useState } from "react";
 
-const TARGET = new URL("https://usb-za-caring-childhood.trycloudflare.com")
+const TARGET = new URL("https://developed-costumes-thru-provided.trycloudflare.com")
 
 export default function Home() {
   const background = useBackgroundContext()
@@ -19,7 +19,7 @@ export default function Home() {
         await background.requestOrThrow<boolean>({
           method: "proxy",
           params: [{ method: "hello" }]
-        }).then(r => r.unwrap())
+        }).then(([r]) => r.unwrap())
 
         setConnected(true)
       } catch (e: unknown) {
@@ -51,8 +51,8 @@ export default function Home() {
 
     await windowMessenger.pingOrThrow()
 
-    window.postMessage({ method: "connect2" }, TARGET.origin, [channel.port1])
-    serviceWorker.postMessage({ method: "connect3", params: [TARGET.origin] }, [channel.port2])
+    window.postMessage([{ method: "connect2" }], TARGET.origin, [channel.port1])
+    serviceWorker.postMessage([{ method: "connect3", params: [TARGET.origin] }], [channel.port2])
   }, [connected])
 
   const onConnectClick = useCallback(async () => {
@@ -72,14 +72,14 @@ export default function Home() {
 
       await windowMessenger.pingOrThrow()
 
-      window.postMessage({ method: "connect" }, TARGET.origin, [channel.port2])
+      window.postMessage([{ method: "connect" }], TARGET.origin, [channel.port2])
 
       await windowRouter.helloOrThrow(AbortSignal.timeout(1000))
 
       await windowRouter.requestOrThrow<void>({
         method: "kv_ask",
         params: ["example", 5_000_000],
-      }, [], AbortSignal.timeout(60_000)).then(r => r.unwrap())
+      }, [], AbortSignal.timeout(60_000)).then(([r]) => r.unwrap())
     } catch (e: unknown) {
       console.error(e)
     }
@@ -93,7 +93,7 @@ export default function Home() {
 
     const backgroundRouter = new RpcRouter(channel.port1)
 
-    serviceWorker.postMessage({ method: "connect" }, [channel.port2])
+    serviceWorker.postMessage([{ method: "connect" }], [channel.port2])
 
     await backgroundRouter.helloOrThrow(AbortSignal.timeout(1000))
 
@@ -101,9 +101,9 @@ export default function Home() {
       method: "proxy",
       params: [{
         method: "kv_set",
-        params: [scope, req, res],
+        params: [scope, req.toJSON(), res.toJSON()],
       }]
-    }, [...req.transferables, ...res.transferables]).then(r => r.unwrap())
+    }, [...req.transferables, ...res.transferables]).then(([r]) => r.unwrap())
   }, [])
 
   const onSetClick = useCallback(async () => {
@@ -124,17 +124,19 @@ export default function Home() {
 
     const backgroundRouter = new RpcRouter(channel.port1)
 
-    serviceWorker.postMessage({ method: "connect" }, [channel.port2])
+    serviceWorker.postMessage([{ method: "connect" }], [channel.port2])
 
     await backgroundRouter.helloOrThrow(AbortSignal.timeout(1000))
 
-    return await backgroundRouter.requestOrThrow<ResponseLike>({
+    const res = await backgroundRouter.requestOrThrow<ResponseLike>({
       method: "proxy",
       params: [{
         method: "kv_get",
-        params: [scope, req],
+        params: [scope, req.toJSON()],
       }]
-    }, req.transferables).then(r => r.unwrap())
+    }, req.transferables).then(([r]) => r.unwrap())
+
+    return new Response(res.body, res)
   }, [])
 
   const onGetClick = useCallback(async () => {
@@ -142,7 +144,7 @@ export default function Home() {
       const req = new TransferableRequest("https://example.com/test")
       const res = await getOrThrow("example", req)
 
-      console.log(res)
+      console.log(new Uint8Array(await res.arrayBuffer()))
     } catch (e: unknown) {
       console.error(e)
     }
@@ -161,7 +163,7 @@ export default function Home() {
 
       await windowMessenger.pingOrThrow()
 
-      window.postMessage({ method: "connect" }, TARGET.origin, [channel.port2])
+      window.postMessage([{ method: "connect" }], TARGET.origin, [channel.port2])
 
       await windowRouter.helloOrThrow(AbortSignal.timeout(1000))
 
@@ -170,7 +172,7 @@ export default function Home() {
       const handle = await windowRouter.requestOrThrow<any>({
         method: "webauthn_storage_create",
         params: ["Example", data],
-      }, [], AbortSignal.timeout(60_000)).then(r => r.unwrap())
+      }, [], AbortSignal.timeout(60_000)).then(([r]) => r.unwrap())
 
       const req = new TransferableRequest("https://example.com/handle")
       const res = new TransferableResponse(handle, { status: 200 })
@@ -186,8 +188,7 @@ export default function Home() {
     try {
       const req = new TransferableRequest("https://example.com/handle")
       const res = await getOrThrow("example", req)
-      const res2 = new Response(res.body, res)
-      const handle = new Uint8Array(await res2.arrayBuffer())
+      const handle = new Uint8Array(await res.arrayBuffer())
 
       const channel = new MessageChannel()
       const window = open(`${TARGET.origin}/request`, "_blank")
@@ -200,14 +201,14 @@ export default function Home() {
 
       await windowMessenger.pingOrThrow()
 
-      window.postMessage({ method: "connect" }, TARGET.origin, [channel.port2])
+      window.postMessage([{ method: "connect" }], TARGET.origin, [channel.port2])
 
       await windowRouter.helloOrThrow(AbortSignal.timeout(1000))
 
       const data = await windowRouter.requestOrThrow<any>({
         method: "webauthn_storage_get",
         params: [handle],
-      }, [], AbortSignal.timeout(60_000)).then(r => r.unwrap())
+      }, [], AbortSignal.timeout(60_000)).then(([r]) => r.unwrap())
 
       console.log("Retrieved credential", data)
     } catch (e: unknown) {

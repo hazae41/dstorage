@@ -61,13 +61,13 @@ function example(value: boolean): void
 You can call it with
 
 ```tsx
-port.postMessage({ jsonrpc: "2.0", id: 123, method: "example", params: [true] })
+port.postMessage([{ jsonrpc: "2.0", id: 123, method: "example", params: [true] }])
 ```
 
 And get the result with
 
 ```tsx
-const { id, result, error } = event.data
+const [{ id, result, error }] = event.data
 ```
 
 ### KeyVal

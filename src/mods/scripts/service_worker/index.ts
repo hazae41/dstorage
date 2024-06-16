@@ -1,6 +1,6 @@
 import "@hazae41/symbol-dispose-polyfill";
 
-import { RequestLike, ResponseLike } from "@/libs/http";
+import { RequestLike, ResponseLike, TransferableResponse } from "@/libs/http";
 import { RpcRouter } from "@/libs/jsonrpc";
 import { RpcRequestPreinit } from "@hazae41/jsonrpc";
 
@@ -11,12 +11,12 @@ declare const self: ServiceWorkerGlobalScope
 self.addEventListener("message", async (event) => {
   if (event.origin !== location.origin)
     return
-  const message = event.data as RpcRequestPreinit
+  const [message] = event.data as [RpcRequestPreinit]
 
   if (message.method === "ping") {
     if (event.source == null)
       return
-    event.source.postMessage({ method: "pong" })
+    event.source.postMessage([{ method: "pong" }])
     return
   }
 
@@ -31,7 +31,7 @@ self.addEventListener("message", async (event) => {
 
     const pageRouter = new RpcRouter(pagePort)
 
-    pageRouter.handlers.set("sw_size", () => self.clients.matchAll().then(r => r.length))
+    pageRouter.handlers.set("sw_size", async () => [await self.clients.matchAll().then(r => r.length)])
 
     pageRouter.handlers.set("kv_ask", async (request) => {
       const [scope, origin, capacity] = request.params as [string, string, number]
@@ -57,7 +57,7 @@ self.addEventListener("message", async (event) => {
       if (newCapacityNum > oldCapacityNum)
         await cache.put(capacityReq, newCapacityRes)
 
-      return
+      return [] as const
     })
 
     await pageRouter.helloOrThrow(AbortSignal.timeout(1000))
@@ -95,7 +95,7 @@ self.addEventListener("message", async (event) => {
         if (allowedRes == null)
           throw new Error("Not allowed")
 
-        return
+        return []
       })
 
       originRouter.handlers.set("kv_set", async (request) => {
@@ -141,6 +141,8 @@ self.addEventListener("message", async (event) => {
 
         await cache.put(valueReq, newValueRes)
         await cache.put(sizeReq, new Response(JSON.stringify(newSizeNum)))
+
+        return []
       })
 
       originRouter.handlers.set("kv_get", async (request) => {
@@ -162,7 +164,14 @@ self.addEventListener("message", async (event) => {
         if (allowedRes == null)
           throw new Error("Not allowed")
 
-        return await cache.match(valueReq)
+        const valueRes = await cache.match(valueReq)
+
+        if (valueRes == null)
+          return []
+
+        const transValueRes = TransferableResponse.from(valueRes)
+
+        return [transValueRes.toJSON(), transValueRes.transferables]
       })
 
       await originRouter.helloOrThrow(AbortSignal.timeout(1000))

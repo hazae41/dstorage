@@ -10,12 +10,12 @@ export default function Home() {
   const onMessage = useCallback(async (event: MessageEvent) => {
     if (event.origin === location.origin)
       return
-    const message = event.data as RpcRequestPreinit
+    const [message] = event.data as [RpcRequestPreinit]
 
     if (message.method === "ping") {
       if (event.source == null)
         return
-      event.source.postMessage({ method: "pong" }, { targetOrigin: event.origin })
+      event.source.postMessage([{ method: "pong" }], { targetOrigin: event.origin })
       return
     }
 
@@ -28,9 +28,9 @@ export default function Home() {
       await navigator.serviceWorker.register("/service_worker.js")
       const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 
-      serviceWorker.postMessage({ method: "connect3", params: [event.origin] }, [parentPort])
+      serviceWorker.postMessage([{ method: "connect3", params: [event.origin] }], [parentPort])
 
-      const size = await background.requestOrThrow<number>({ method: "sw_size" }).then(r => r.unwrap())
+      const size = await background.requestOrThrow<number>({ method: "sw_size" }).then(([r]) => r.unwrap())
 
       if (size > 1)
         close()

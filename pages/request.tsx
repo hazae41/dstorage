@@ -20,12 +20,12 @@ export default function Home() {
   const onMessage = useCallback(async (event: MessageEvent) => {
     if (event.origin === location.origin)
       return
-    const message = event.data as RpcRequestPreinit
+    const [message] = event.data as [RpcRequestPreinit]
 
     if (message.method === "ping") {
       if (event.source == null)
         return
-      event.source.postMessage({ method: "pong" }, { targetOrigin: event.origin })
+      event.source.postMessage([{ method: "pong" }], { targetOrigin: event.origin })
       return
     }
 
@@ -44,7 +44,7 @@ export default function Home() {
 
         setMessage({ method, origin, params, future })
 
-        return await future.promise
+        return [await future.promise] as const
       }
 
       parentRouter.handlers.set("kv_ask", onRequest)
@@ -95,7 +95,7 @@ export function KvAsk(props: {
     await background.requestOrThrow<void>({
       method: "kv_ask",
       params: [scope, origin, capacity]
-    }, [], AbortSignal.timeout(1000)).then(r => r.unwrap())
+    }, [], AbortSignal.timeout(1000)).then(([r]) => r.unwrap())
 
     future.resolve(undefined)
 

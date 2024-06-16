@@ -7,11 +7,20 @@ export type RpcMessageInit =
   | RpcRequestInit
   | RpcResponseInit
 
+export type Awaitable<T> =
+  | T
+  | Promise<T>
+
+export type Return =
+  | readonly [unknown, Transferable[]]
+  | readonly [unknown]
+  | readonly []
+
 export class RpcRouter {
 
   readonly counter = new RpcCounter()
-  readonly requests = new Map<RpcId, Future<RpcResponse<any>>>()
-  readonly handlers = new Map<string, (request: RpcRequest<any>) => unknown>()
+  readonly requests = new Map<RpcId, Future<[RpcResponse<any>, Transferable[]]>>()
+  readonly handlers = new Map<string, (request: RpcRequest<any>, transferreds: Transferable[]) => Awaitable<Return>>()
 
   readonly resolveOnHello = new Future<void>()
   readonly resolveOnClose = new Future<unknown>()
@@ -38,27 +47,27 @@ export class RpcRouter {
   }
 
   async #onMessage(event: MessageEvent) {
-    const message = event.data as RpcMessageInit
+    const [message, transferreds] = event.data as [RpcMessageInit, Transferable[]]
 
     if (typeof message !== "object")
       return
 
     if ("method" in message) {
       const request = RpcRequest.from(message)
-      this.#onRequest(request).catch(console.error)
+      this.#onRequest(request, transferreds).catch(console.error)
     } else {
       const response = RpcResponse.from(message)
-      this.requests.get(response.id)?.resolve(response)
+      this.requests.get(response.id)?.resolve([response, transferreds])
     }
   }
 
-  async #onRequest(request: RpcRequest<unknown>) {
+  async #onRequest(request: RpcRequest<unknown>, transferreds: Transferable[]) {
     if (request.method === "hello") {
       this.resolveOnHello.resolve()
 
       const response = new RpcOk(request.id, undefined)
 
-      this.port.postMessage(response)
+      this.port.postMessage([response])
       return
     }
 
@@ -68,37 +77,27 @@ export class RpcRouter {
       const error = new RpcMethodNotFoundError()
       const response = new RpcErr(request.id, error)
 
-      this.port.postMessage(response)
+      this.port.postMessage([response])
       return
     }
 
     try {
-      const result = await handler(request)
-      const response = new RpcOk(request.id, result)
+      const [returned, transferables = []] = await handler(request, transferreds)
+      const response = new RpcOk(request.id, returned)
 
-      if (result instanceof Response) {
-        const status = result.status
-        const headers = [...result.headers]
-        const body = await result.arrayBuffer()
-        const response = new RpcOk(request.id, { status, headers, body })
-
-        this.port.postMessage(response, [body])
-        return
-      } else {
-        this.port.postMessage(response)
-        return
-      }
+      this.port.postMessage([response, transferables], transferables)
+      return
     } catch (e: unknown) {
       const error = RpcError.rewrap(e)
       const response = new RpcErr(request.id, error)
 
-      this.port.postMessage(response)
+      this.port.postMessage([response])
       return
     }
   }
 
   #request<T>(init: RpcRequestPreinit, transferables: Transferable[] = []) {
-    const resolveOnResponse = new Future<RpcResponse<T>>()
+    const resolveOnResponse = new Future<[RpcResponse<T>, Transferable[]]>()
 
     const request = this.counter.prepare(init)
 
@@ -106,7 +105,7 @@ export class RpcRouter {
     const clean = () => this.requests.delete(request.id)
     const disposer = new Disposer(resolveOnResponse.promise, clean)
 
-    this.port.postMessage(request, transferables)
+    this.port.postMessage([request, transferables], transferables)
 
     return disposer
   }

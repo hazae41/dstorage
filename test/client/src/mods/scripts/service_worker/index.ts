@@ -12,12 +12,12 @@ let targetRouter: RpcRouter
 addEventListener("message", async (event) => {
   if (event.origin !== location.origin)
     return
-  const message = event.data as RpcRequestPreinit
+  const [message] = event.data as [RpcRequestPreinit]
 
   if (message.method === "ping") {
     if (event.source == null)
       return
-    event.source.postMessage({ method: "pong" })
+    event.source.postMessage([{ method: "pong" }])
     return
   }
 
@@ -29,13 +29,13 @@ addEventListener("message", async (event) => {
 
     const pageRouter = new RpcRouter(pagePort)
 
-    pageRouter.handlers.set("proxy", async (request: RpcRequestPreinit) => {
-      const [subrequest, transferables] = request.params as [RpcRequestPreinit, Transferable[]]
+    pageRouter.handlers.set("proxy", async (request: RpcRequestPreinit, transferables: Transferable[]) => {
+      const [subrequest] = request.params as [RpcRequestPreinit]
 
       if (targetRouter == null)
         throw new Error(`Not connected`)
 
-      return await targetRouter.requestOrThrow(subrequest, transferables, AbortSignal.timeout(1000)).then(r => r.unwrap())
+      return await targetRouter.requestOrThrow(subrequest, transferables, AbortSignal.timeout(1000)).then(([r, t]) => [r.unwrap(), t])
     })
 
     await pageRouter.helloOrThrow(AbortSignal.timeout(1000))

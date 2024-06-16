@@ -28,7 +28,7 @@ export function BackgroundProvider(props: {
 
     const backgroundRouter = new RpcRouter(channel.port1)
 
-    serviceWorker.postMessage({ method: "connect" }, [channel.port2])
+    serviceWorker.postMessage([{ method: "connect" }], [channel.port2])
 
     await backgroundRouter.helloOrThrow(AbortSignal.timeout(1000))
 
