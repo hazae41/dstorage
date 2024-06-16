@@ -152,6 +152,39 @@ You can somewhat mitigate this by encrypting your data using an user-provided pa
 
 ## Protocols
 
+### Explicit Transfer Protocol (ETP)
+
+All messages sent via `postMessage` are in the format `[message: unknown, transferreds: Transferable[]]`
+
+e.g. 
+
+```tsx
+const bytes = new Uint8Array([1,2,3,4,5])
+
+window.postMessage([{
+  method: "example",
+  params: [bytes]
+}, [bytes]], [bytes])
+```
+
+This allows explicit passing of transferable objects and thus zero-copy messaging and proxying
+
+e.g.
+
+```tsx
+/**
+ * Proxy and transfer from port to port2
+ */
+port.onmessage = (e) => {
+  const [m, t] = e.data
+
+  /**
+   * t are transferred again
+   */
+  port2.postMessage([m, t], t)
+}
+```
+
 ### D-JSON-RPC (UDP-like multicast-like communication)
 
 This is used via `postMessage` by pages (and iframes) and service-workers before a `MessagePort` is shared
