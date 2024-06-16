@@ -70,7 +70,7 @@ And get the result with
 const [{ id, result, error }] = event.data
 ```
 
-### KeyVal
+### Cache
 
 This is a key-value storage using Cache API.
 
@@ -83,16 +83,18 @@ function kv_ask(scope: string, capacity: number): void
 This will ask user-interaction for access to `scope` and grow it to `capacity` bytes
 
 ```tsx
-function kv_set(scope: string, key: string, body: BodyInit, init: ResponseInit): void
+function kv_set(scope: string, request: RequestLike, response: ResponseLike): void
 ```
 
 This will set `key` to `value` in `scope`
 
 ```tsx
-function kv_get(scope: string, key: string): unknown
+function kv_get(scope: string, request: RequestLike): unknown
 ```
 
 This will return `value` from `key` in `scope`
+
+(`RequestLike` and `ResponseLike` are just JSON-compatible versions of `Request` and `Response`)
 
 ### WebAuthn
 
