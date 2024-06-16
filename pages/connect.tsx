@@ -2,12 +2,10 @@ import "@hazae41/symbol-dispose-polyfill";
 
 import { useBackgroundContext } from "@/mods/comps/background";
 import { RpcRequestPreinit } from "@hazae41/jsonrpc";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 
 export default function Home() {
   const background = useBackgroundContext()
-
-  const [connected, setConnected] = useState(false)
 
   const onMessage = useCallback(async (event: MessageEvent) => {
     if (event.origin === location.origin)
@@ -37,7 +35,7 @@ export default function Home() {
       if (size > 1)
         close()
 
-      setConnected(true)
+      location.assign("/keepalive")
       return
     }
   }, [background])
@@ -47,8 +45,5 @@ export default function Home() {
     return () => removeEventListener("message", onMessage)
   }, [onMessage])
 
-  if (!connected)
-    return <>Loading...</>
-
-  return <>Please do not close this page</>
+  return <>Loading...</>
 }
