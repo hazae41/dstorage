@@ -1,13 +1,12 @@
 import "@hazae41/symbol-dispose-polyfill";
 
+import { RequestLike, ResponseLike } from "@/libs/http";
 import { RpcRouter } from "@/libs/jsonrpc";
 import { RpcRequestPreinit } from "@hazae41/jsonrpc";
 
 export { };
 
 declare const self: ServiceWorkerGlobalScope
-
-const uuid = crypto.randomUUID()
 
 self.addEventListener("message", async (event) => {
   if (event.origin !== location.origin)
@@ -39,14 +38,14 @@ self.addEventListener("message", async (event) => {
 
       const cache = await caches.open(scope)
 
-      const allowedUrl = new URL("/allowed", location.origin)
+      const allowedUrl = new URL("/allowed", "http://meta")
       allowedUrl.searchParams.set("origin", origin)
       const allowedReq = new Request(allowedUrl)
       const allowedRes = new Response()
 
       await cache.put(allowedReq, allowedRes)
 
-      const capacityUrl = new URL("/capacity", location.origin)
+      const capacityUrl = new URL("/capacity", "http://meta")
       const capacityReq = new Request(capacityUrl)
 
       const oldCapacityRes = await cache.match(capacityReq)
@@ -88,7 +87,7 @@ self.addEventListener("message", async (event) => {
 
         const cache = await caches.open(scope)
 
-        const allowedUrl = new URL("/allowed", location.origin)
+        const allowedUrl = new URL("/allowed", "http://meta")
         allowedUrl.searchParams.set("origin", origin)
         const allowedReq = new Request(allowedUrl)
         const allowedRes = await cache.match(allowedReq)
@@ -100,11 +99,17 @@ self.addEventListener("message", async (event) => {
       })
 
       originRouter.handlers.set("kv_set", async (request) => {
-        const [scope, key, body, init] = request.params as [string, string, BodyInit, ResponseInit]
+        const [scope, req, res] = request.params as [string, RequestLike, ResponseLike]
 
         const cache = await caches.open(scope)
 
-        const allowedUrl = new URL("/allowed", location.origin)
+        const valueReq = new Request(req.url, req)
+        const valueUrl = new URL(valueReq.url)
+
+        if (valueUrl.origin === "http://meta")
+          throw new Error("Not allowed")
+
+        const allowedUrl = new URL("/allowed", "http://meta")
         allowedUrl.searchParams.set("origin", origin)
         const allowedReq = new Request(allowedUrl)
         const allowedRes = await cache.match(allowedReq)
@@ -112,17 +117,13 @@ self.addEventListener("message", async (event) => {
         if (allowedRes == null)
           throw new Error("Not allowed")
 
-        const valueUrl = new URL("/value", location.origin)
-        valueUrl.searchParams.set("key", key)
-        const valueReq = new Request(valueUrl)
-
         const oldValueRes = await cache.match(valueReq)
         const oldValueSize = oldValueRes == null ? 0 : await oldValueRes.arrayBuffer().then(r => r.byteLength)
 
-        const newValueRes = new Response(body, init)
+        const newValueRes = new Response(res.body, res)
         const newValueSize = await newValueRes.clone().arrayBuffer().then(r => r.byteLength)
 
-        const sizeUrl = new URL("/size", location.origin)
+        const sizeUrl = new URL("/size", "http://meta")
         const sizeReq = new Request(sizeUrl)
 
         const oldSizeRes = await cache.match(sizeReq)
@@ -130,7 +131,7 @@ self.addEventListener("message", async (event) => {
 
         const newSizeNum = oldSizeNum - oldValueSize + newValueSize
 
-        const capacityUrl = new URL("/capacity", location.origin)
+        const capacityUrl = new URL("/capacity", "http://meta")
         const capacityReq = new Request(capacityUrl)
         const capacityRes = await cache.match(capacityReq)
         const capacityNum = capacityRes == null ? 0 : await capacityRes.json() as number
@@ -143,11 +144,17 @@ self.addEventListener("message", async (event) => {
       })
 
       originRouter.handlers.set("kv_get", async (request) => {
-        const [scope, key] = request.params as [string, string]
+        const [scope, req] = request.params as [string, RequestLike]
 
         const cache = await caches.open(scope)
 
-        const allowedUrl = new URL("/allowed", location.origin)
+        const valueReq = new Request(req.url, req)
+        const valueUrl = new URL(valueReq.url)
+
+        if (valueUrl.origin === "http://meta")
+          throw new Error("Not allowed")
+
+        const allowedUrl = new URL("/allowed", "http://meta")
         allowedUrl.searchParams.set("origin", origin)
         const allowedReq = new Request(allowedUrl)
         const allowedRes = await cache.match(allowedReq)
@@ -155,15 +162,7 @@ self.addEventListener("message", async (event) => {
         if (allowedRes == null)
           throw new Error("Not allowed")
 
-        const valueUrl = new URL("/value", location.origin)
-        valueUrl.searchParams.set("key", key)
-        const valueReq = new Request(valueUrl)
-        const valueRes = await cache.match(valueReq)
-
-        if (valueRes == null)
-          throw new Error("Not found")
-
-        return valueRes
+        return await cache.match(valueReq)
       })
 
       await originRouter.helloOrThrow(AbortSignal.timeout(1000))
