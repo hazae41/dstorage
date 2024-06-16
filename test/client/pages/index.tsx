@@ -1,5 +1,6 @@
 import "@hazae41/symbol-dispose-polyfill";
 
+import { ResponseLike, TransferableRequest, TransferableResponse } from "@/libs/http";
 import { RpcRouter } from "@/libs/jsonrpc";
 import { WindowMessenger } from "@/libs/messenger";
 import { useBackgroundContext } from "@/mods/comps/background";
@@ -84,7 +85,7 @@ export default function Home() {
     }
   }, [])
 
-  const setOrThrow = useCallback(async (scope: string, key: string, body: unknown, init: unknown) => {
+  const setOrThrow = useCallback(async (scope: string, req: TransferableRequest, res: TransferableResponse) => {
     const channel = new MessageChannel()
 
     await navigator.serviceWorker.register("/service_worker.js")
@@ -100,20 +101,22 @@ export default function Home() {
       method: "proxy",
       params: [{
         method: "kv_set",
-        params: [scope, key, body, init],
+        params: [scope, req, res],
       }]
-    }).then(r => r.unwrap())
+    }, [...req.transferables, ...res.transferables]).then(r => r.unwrap())
   }, [])
 
   const onSetClick = useCallback(async () => {
     try {
-      await setOrThrow("example", "buffer", new Uint8Array([1, 2, 3, 4, 5]), { status: 200 })
+      const req = new TransferableRequest("https://example.com/test")
+      const res = new TransferableResponse(new Uint8Array([1, 2, 3, 4, 5]), { status: 400 })
+      await setOrThrow("example", req, res)
     } catch (e: unknown) {
       console.error(e)
     }
   }, [setOrThrow])
 
-  const getOrThrow = useCallback(async (scope: string, key: string) => {
+  const getOrThrow = useCallback(async (scope: string, req: TransferableRequest) => {
     const channel = new MessageChannel()
 
     await navigator.serviceWorker.register("/service_worker.js")
@@ -125,22 +128,21 @@ export default function Home() {
 
     await backgroundRouter.helloOrThrow(AbortSignal.timeout(1000))
 
-    const response = await backgroundRouter.requestOrThrow<{ body: ArrayBuffer }>({
+    return await backgroundRouter.requestOrThrow<ResponseLike>({
       method: "proxy",
       params: [{
         method: "kv_get",
-        params: [scope, key],
+        params: [scope, req],
       }]
-    }).then(r => r.unwrap())
-
-    return response
+    }, req.transferables).then(r => r.unwrap())
   }, [])
 
   const onGetClick = useCallback(async () => {
     try {
-      const response = await getOrThrow("example", "buffer")
+      const req = new TransferableRequest("https://example.com/test")
+      const res = await getOrThrow("example", req)
 
-      console.log(response)
+      console.log(res)
     } catch (e: unknown) {
       console.error(e)
     }
@@ -170,7 +172,9 @@ export default function Home() {
         params: ["Example", data],
       }, [], AbortSignal.timeout(60_000)).then(r => r.unwrap())
 
-      await setOrThrow("example", "handle", handle, { status: 200 })
+      const req = new TransferableRequest("https://example.com/handle")
+      const res = new TransferableResponse(handle, { status: 200 })
+      await setOrThrow("example", req, res)
 
       console.log("Created credential", data)
     } catch (e: unknown) {
@@ -180,8 +184,10 @@ export default function Home() {
 
   const onWebAuthnGetClick = useCallback(async () => {
     try {
-      const response = await getOrThrow("example", "handle")
-      const handle = new Uint8Array(response.body)
+      const req = new TransferableRequest("https://example.com/handle")
+      const res = await getOrThrow("example", req)
+      const res2 = new Response(res.body, res)
+      const handle = new Uint8Array(await res2.arrayBuffer())
 
       const channel = new MessageChannel()
       const window = open(`${TARGET.origin}/request`, "_blank")
