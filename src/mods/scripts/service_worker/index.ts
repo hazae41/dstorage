@@ -28,24 +28,35 @@ async function main() {
     const currentRes = await cache.match(currentReq)
 
     /**
-     * We don't know our hash
+     * We don't know current hash
      */
     if (currentRes == null) {
       const pendingPath = `/service_worker.js?nonce=${latestHashRawHex}`
       const pendingRes = new Response(pendingPath)
 
+      /**
+       * Set current hash to latest hash
+       */
       await cache.put(currentReq, pendingRes)
-    } else {
+    }
+
+    /**
+     * We know current hash
+     */
+    else {
       const currentPath = await currentRes.text()
       const pendingPath = `/service_worker.js?nonce=${latestHashRawHex}`
 
       /**
-       * We know our hash and it's different from the latest hash
+       * Compare current hash with latest hash
        */
       if (currentPath !== pendingPath) {
         const pendingReq = new Request(`/pending`)
         const pendingRes = new Response(pendingPath)
 
+        /**
+         * Set pending hash to the latest hash
+         */
         await cache.put(pendingReq, pendingRes)
       }
     }
