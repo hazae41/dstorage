@@ -8,6 +8,8 @@ export { };
 
 declare const self: ServiceWorkerGlobalScope
 
+self.addEventListener("install", () => void self.skipWaiting())
+
 self.addEventListener("message", async (event) => {
   if (event.origin !== location.origin)
     return
@@ -180,5 +182,3 @@ self.addEventListener("message", async (event) => {
     }
   }
 })
-
-self.skipWaiting()
