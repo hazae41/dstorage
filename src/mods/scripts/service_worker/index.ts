@@ -58,6 +58,8 @@ async function main() {
          * Set pending hash to the latest hash
          */
         await cache.put(pendingReq, pendingRes)
+
+        console.log(`Update available`)
       }
     }
   } catch (e: unknown) {
