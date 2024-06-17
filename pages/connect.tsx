@@ -25,7 +25,7 @@ export default function Home() {
       if (parentPort == null)
         return
 
-      await navigator.serviceWorker.register("/service_worker.js")
+      await navigator.serviceWorker.register("/service_worker.js", { updateViaCache: "all" })
       const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 
       serviceWorker.postMessage([{ method: "connect3", params: [event.origin] }], [parentPort])

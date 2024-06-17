@@ -23,7 +23,7 @@ export function BackgroundProvider(props: {
   const connectOrThrow = useCallback(async () => {
     const channel = new MessageChannel()
 
-    await navigator.serviceWorker.register("/service_worker.js")
+    await navigator.serviceWorker.register("/service_worker.js", { updateViaCache: "all" })
     const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 
     const backgroundRouter = new RpcRouter(channel.port1)
