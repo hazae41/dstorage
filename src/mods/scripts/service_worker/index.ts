@@ -20,7 +20,7 @@ async function main() {
     const latestRes = await fetch(`/service_worker.js`, { cache: "reload" })
 
     if (latestRes.headers.get("cache-control") !== "public, max-age=31536000, immutable")
-      console.warn("Service worker is not immutable")
+      throw new Error("Service worker is not immutable")
 
     const latestBytes = new Uint8Array(await latestRes.arrayBuffer())
     const latestHashBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", latestBytes))
