@@ -9,8 +9,8 @@ export { };
 declare const self: ServiceWorkerGlobalScope
 
 async function main() {
-  self.addEventListener("install", async () => {
-    await self.skipWaiting()
+  self.addEventListener("install", (e) => {
+    self.skipWaiting()
   })
 
   try {
