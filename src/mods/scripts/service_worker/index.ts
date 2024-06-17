@@ -18,6 +18,10 @@ async function main() {
      * Fetch latest hash (can be spoofed)
      */
     const latestRes = await fetch(`/service_worker.js`, { cache: "reload" })
+
+    if (latestRes.headers.get("cache-control") !== "public, max-age=31536000, immutable")
+      console.warn("Service worker is not immutable")
+
     const latestBytes = new Uint8Array(await latestRes.arrayBuffer())
     const latestHashBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", latestBytes))
     const latestHashRawHex = Array.from(latestHashBytes).map(b => b.toString(16).padStart(2, "0")).join("")
