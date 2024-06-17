@@ -13,10 +13,10 @@ async function main() {
     await self.skipWaiting()
   })
 
-  /**
-   * Check for update
-   */
   try {
+    /**
+     * Fetch latest hash
+     */
     const latestRes = await fetch(`/service_worker.js`, { cache: "reload" })
     const latestBytes = new Uint8Array(await latestRes.arrayBuffer())
     const latestHashBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", latestBytes))
