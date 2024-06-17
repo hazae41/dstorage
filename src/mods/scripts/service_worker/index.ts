@@ -15,7 +15,7 @@ async function main() {
 
   try {
     /**
-     * Fetch latest hash
+     * Fetch latest hash (can be spoofed)
      */
     const latestRes = await fetch(`/service_worker.js`, { cache: "reload" })
     const latestBytes = new Uint8Array(await latestRes.arrayBuffer())
