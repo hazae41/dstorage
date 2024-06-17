@@ -28,7 +28,7 @@ async function main() {
     const currentRes = await cache.match(currentReq)
 
     /**
-     * First time
+     * We don't know our hash
      */
     if (currentRes == null) {
       const pendingPath = `/service_worker.js?nonce=${latestHashRawHex}`
@@ -40,7 +40,7 @@ async function main() {
       const pendingPath = `/service_worker.js?nonce=${latestHashRawHex}`
 
       /**
-       * Update available
+       * We know our hash and it's different from the latest hash
        */
       if (currentPath !== pendingPath) {
         const pendingReq = new Request(`/pending`)
