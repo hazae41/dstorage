@@ -25,7 +25,7 @@ export default function Home() {
       if (parentPort == null)
         return
 
-      const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
+      const serviceWorker = navigator.serviceWorker.controller!
 
       serviceWorker.postMessage([{ method: "connect3", params: [event.origin] }], [parentPort])
 

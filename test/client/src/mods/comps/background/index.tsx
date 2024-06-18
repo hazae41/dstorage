@@ -1,4 +1,5 @@
 import { RpcRouter } from "@/libs/jsonrpc"
+import { Future } from "@hazae41/future"
 import { Nullable } from "@hazae41/option"
 import { ReactNode, createContext, useCallback, useContext, useEffect, useState } from "react"
 
@@ -51,7 +52,43 @@ export namespace StickyServiceWorker {
 
     const currentHashRawHex = JsonLocalStorage.getOrSet("service_worker.current.hashRawHex", updatedHashRawHex)
 
-    await navigator.serviceWorker.register(`${basePath}?nonce=${currentHashRawHex}`, { updateViaCache: "all" })
+    const registration = await navigator.serviceWorker.register(`${basePath}?nonce=${currentHashRawHex}`, { updateViaCache: "all" })
+
+    registration.addEventListener("updatefound", () => console.warn("Service worker was updated"))
+
+    const { installing } = registration
+
+    /**
+     * Wait if a new service worker is installing right now
+     */
+    if (installing != null) {
+      const future = new Future<void>()
+
+      const onStateChange = (e: Event) => {
+        if (installing.state !== "activated")
+          return
+        future.resolve()
+      }
+
+      const onError = (e: ErrorEvent) => {
+        future.reject(e.error)
+      }
+
+      try {
+        installing.addEventListener("statechange", onStateChange)
+        installing.addEventListener("error", onError)
+
+        await future.promise
+      } finally {
+        installing.removeEventListener("statechange", onStateChange)
+        installing.removeEventListener("error", onError)
+      }
+    }
+
+    /**
+     * Reload if a new service worker is installed during the session
+     */
+    navigator.serviceWorker.addEventListener("controllerchange", () => location.reload())
 
     if (currentHashRawHex === updatedHashRawHex)
       return
@@ -77,8 +114,7 @@ export function BackgroundProvider(props: {
     if (update != null)
       console.log(`Update available`, () => update())
 
-    navigator.serviceWorker.addEventListener("controllerchange", () => location.reload())
-    const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
+    const serviceWorker = navigator.serviceWorker.controller!
 
     const backgroundRouter = new RpcRouter(channel.port1)
 
