@@ -9,62 +9,9 @@ export { };
 declare const self: ServiceWorkerGlobalScope
 
 async function main() {
-  self.addEventListener("install", (e) => {
+  self.addEventListener("install", () => {
     self.skipWaiting()
   })
-
-  try {
-    /**
-     * Fetch latest hash (can be spoofed)
-     */
-    const latestRes = await fetch(`/service_worker.js`, { cache: "reload" })
-    const latestBytes = new Uint8Array(await latestRes.arrayBuffer())
-    const latestHashBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", latestBytes))
-    const latestHashRawHex = Array.from(latestHashBytes).map(b => b.toString(16).padStart(2, "0")).join("")
-
-    const cache = await caches.open("service_worker")
-
-    const currentReq = new Request(`/current`)
-    const currentRes = await cache.match(currentReq)
-
-    /**
-     * We don't know current hash
-     */
-    if (currentRes == null) {
-      const pendingPath = `/service_worker.js?nonce=${latestHashRawHex}`
-      const pendingRes = new Response(pendingPath)
-
-      /**
-       * Set current hash to latest hash
-       */
-      await cache.put(currentReq, pendingRes)
-    }
-
-    /**
-     * We know current hash
-     */
-    else {
-      const currentPath = await currentRes.text()
-      const pendingPath = `/service_worker.js?nonce=${latestHashRawHex}`
-
-      /**
-       * Compare current hash with latest hash
-       */
-      if (currentPath !== pendingPath) {
-        const pendingReq = new Request(`/pending`)
-        const pendingRes = new Response(pendingPath)
-
-        /**
-         * Set pending hash to the latest hash
-         */
-        await cache.put(pendingReq, pendingRes)
-
-        console.log(`Update available`)
-      }
-    }
-  } catch (e: unknown) {
-    console.error(e)
-  }
 
   self.addEventListener("message", async (event) => {
     if (event.origin !== location.origin)
@@ -241,3 +188,5 @@ async function main() {
 }
 
 await main()
+
+console.log("hello9")

@@ -46,7 +46,6 @@ export default function Home() {
 
     const windowMessenger = new WindowMessenger(window, TARGET.origin)
 
-    await navigator.serviceWorker.register("/service_worker.js", { updateViaCache: "all" })
     const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 
     await windowMessenger.pingOrThrow()
@@ -88,7 +87,6 @@ export default function Home() {
   const setOrThrow = useCallback(async (scope: string, req: TransferableRequest, res: TransferableResponse) => {
     const channel = new MessageChannel()
 
-    await navigator.serviceWorker.register("/service_worker.js", { updateViaCache: "all" })
     const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 
     const backgroundRouter = new RpcRouter(channel.port1)
@@ -119,7 +117,6 @@ export default function Home() {
   const getOrThrow = useCallback(async (scope: string, req: TransferableRequest) => {
     const channel = new MessageChannel()
 
-    await navigator.serviceWorker.register("/service_worker.js", { updateViaCache: "all" })
     const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 
     const backgroundRouter = new RpcRouter(channel.port1)

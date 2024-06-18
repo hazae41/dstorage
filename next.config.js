@@ -35,7 +35,20 @@ const nextConfig = {
   exportPathMap: async (map) => {
     await promise
     return map
-  }
+  },
+  async headers() {
+    return [
+      {
+        source: "/service_worker.js",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+    ]
+  },
 }
 
 /**
