@@ -9,7 +9,13 @@ declare const self: ServiceWorkerGlobalScope
 
 let targetRouter: RpcRouter
 
-self.addEventListener("install", () => void self.skipWaiting())
+self.addEventListener("install", (event) => {
+  event.waitUntil(self.skipWaiting())
+})
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(self.clients.claim())
+})
 
 self.addEventListener("message", async (event) => {
   if (event.origin !== location.origin)

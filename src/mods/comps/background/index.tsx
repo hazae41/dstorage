@@ -77,6 +77,7 @@ export function BackgroundProvider(props: {
     if (update != null)
       console.log(`Update available`, () => update())
 
+    navigator.serviceWorker.addEventListener("controllerchange", () => location.reload())
     const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 
     const backgroundRouter = new RpcRouter(channel.port1)
