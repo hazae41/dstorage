@@ -1,3 +1,5 @@
+import "@hazae41/symbol-dispose-polyfill";
+
 import { Disposer } from "@hazae41/disposer";
 import { Future } from "@hazae41/future";
 import { RpcCounter, RpcErr, RpcError, RpcId, RpcMethodNotFoundError, RpcOk, RpcRequest, RpcRequestInit, RpcRequestPreinit, RpcResponse, RpcResponseInit } from "@hazae41/jsonrpc";

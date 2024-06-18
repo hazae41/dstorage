@@ -1,5 +1,4 @@
 import { RpcRouter } from "@/libs/jsonrpc"
-import { Future } from "@hazae41/future"
 import { Nullable } from "@hazae41/option"
 import { ReactNode, createContext, useCallback, useContext, useEffect, useState } from "react"
 
@@ -52,43 +51,7 @@ export namespace StickyServiceWorker {
 
     const currentHashRawHex = JsonLocalStorage.getOrSet("service_worker.current.hashRawHex", updatedHashRawHex)
 
-    const registration = await navigator.serviceWorker.register(`${basePath}?nonce=${currentHashRawHex}`, { updateViaCache: "all" })
-
-    registration.addEventListener("updatefound", () => console.warn("Service worker was updated"))
-
-    const { installing } = registration
-
-    /**
-     * Wait if a new service worker is installing right now
-     */
-    if (installing != null) {
-      const future = new Future<void>()
-
-      const onStateChange = (e: Event) => {
-        if (installing.state !== "activated")
-          return
-        future.resolve()
-      }
-
-      const onError = (e: ErrorEvent) => {
-        future.reject(e.error)
-      }
-
-      try {
-        installing.addEventListener("statechange", onStateChange)
-        installing.addEventListener("error", onError)
-
-        await future.promise
-      } finally {
-        installing.removeEventListener("statechange", onStateChange)
-        installing.removeEventListener("error", onError)
-      }
-    }
-
-    /**
-     * Reload if a new service worker is installed during the session
-     */
-    navigator.serviceWorker.addEventListener("controllerchange", () => location.reload())
+    await navigator.serviceWorker.register(`${basePath}?nonce=${currentHashRawHex}`, { updateViaCache: "all" })
 
     if (currentHashRawHex === updatedHashRawHex)
       return
@@ -111,8 +74,15 @@ export function BackgroundProvider(props: {
 
     const update = await StickyServiceWorker.register(`/service_worker.js`)
 
-    if (update != null)
-      console.log(`Update available`, () => update())
+    if (update != null) {
+      console.log(`Update available`)
+      setTimeout(() => update(), 5000)
+    }
+
+    /**
+     * Reload if a new service worker is installed during the session
+     */
+    // navigator.serviceWorker.addEventListener("controllerchange", () => location.reload())
 
     const serviceWorker = navigator.serviceWorker.controller!
 
