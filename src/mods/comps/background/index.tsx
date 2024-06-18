@@ -75,7 +75,7 @@ export function BackgroundProvider(props: {
     const update = await StickyServiceWorker.register(`/service_worker.js`)
 
     if (update != null)
-      console.log(`Update available`, update)
+      console.log(`Update available`, () => update())
 
     const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 
