@@ -44,14 +44,16 @@ export namespace JsonLocalStorage {
 export namespace StickyServiceWorker {
 
   export async function register(basePath: string) {
-    const updatedRes = await fetch(basePath, { cache: "reload" })
+    const updatedRes = await fetch("/service_worker.js", { cache: "reload" })
     const updatedBytes = new Uint8Array(await updatedRes.arrayBuffer())
     const updatedHashBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", updatedBytes))
     const updatedHashRawHex = Array.from(updatedHashBytes).map(b => b.toString(16).padStart(2, "0")).join("")
 
     const currentHashRawHex = JsonLocalStorage.getOrSet("service_worker.current.hashRawHex", updatedHashRawHex)
 
-    await navigator.serviceWorker.register(`${basePath}?nonce=${currentHashRawHex}`, { updateViaCache: "all" })
+    const registration = await navigator.serviceWorker.register(`/service_worker.proxy.js?hash=${currentHashRawHex}`, { updateViaCache: "all" })
+
+    registration.addEventListener("updatefound", async () => alert("Update found"))
 
     if (currentHashRawHex === updatedHashRawHex)
       return
@@ -72,12 +74,7 @@ export function BackgroundProvider(props: {
   const connectOrThrow = useCallback(async () => {
     const channel = new MessageChannel()
 
-    const update = await StickyServiceWorker.register(`/service_worker.js`)
-
-    if (update != null) {
-      console.log(`Update available`)
-      setTimeout(() => update(), 5000)
-    }
+    const update = await StickyServiceWorker.register(`/service_worker.proxy.js`)
 
     /**
      * Reload if a new service worker is installed during the session
@@ -90,7 +87,14 @@ export function BackgroundProvider(props: {
 
     serviceWorker.postMessage([{ method: "connect" }], [channel.port2])
 
-    await backgroundRouter.helloOrThrow(AbortSignal.timeout(1000))
+    await backgroundRouter.helloOrThrow(AbortSignal.timeout(1000));
+
+    const version = await backgroundRouter.requestOrThrow<number>({
+      method: "sw_version"
+    }).then(([r]) => r.unwrap());
+
+    (window as any).version = version;
+    (window as any).update = update;
 
     setBackground(backgroundRouter)
 
