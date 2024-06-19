@@ -1,0 +1,1 @@
+self.importScripts(`./service_worker.js${location.search}`)
