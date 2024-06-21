@@ -15,11 +15,14 @@ export function useBackgroundContext() {
 
 export namespace JsonLocalStorage {
 
-  export function set<T>(key: string, value: T) {
-    localStorage.setItem(key, JSON.stringify(value))
+  export function set<T>(key: string, value: Nullable<T>) {
+    if (value != null)
+      localStorage.setItem(key, JSON.stringify(value))
+    else
+      localStorage.removeItem(key)
   }
 
-  export function get<T>(key: string) {
+  export function get<T>(key: string): Nullable<T> {
     const value = localStorage.getItem(key)
 
     if (value == null)
@@ -28,7 +31,15 @@ export namespace JsonLocalStorage {
     return JSON.parse(value) as T
   }
 
-  export function getOrSet<T>(key: string, defaultValue: T) {
+  export function getAndSet<T>(key: string, newValue: T) {
+    const currentValue = get<T>(key)
+
+    set(key, newValue)
+
+    return currentValue
+  }
+
+  export function getOrSet<T>(key: string, defaultValue: Nullable<T>) {
     const currentValue = get<T>(key)
 
     if (currentValue != null)
@@ -38,12 +49,48 @@ export namespace JsonLocalStorage {
 
     return defaultValue
   }
-
 }
 
 export namespace StickyServiceWorker {
 
-  export async function register(basePath: string) {
+  export async function register() {
+    const registration = await navigator.serviceWorker.getRegistration()
+
+    registration?.addEventListener("updatefound", async () => {
+      // return
+
+      const pendingHashRawHex = JsonLocalStorage.getAndSet("service_worker.pending.hashRawHex", undefined)
+
+      if (pendingHashRawHex != null)
+        return
+      console.warn(`Unexpected service worker update detected`)
+
+      localStorage.clear()
+      sessionStorage.clear()
+
+      console.warn(`Successfully cleared storage`)
+
+      registration.unregister()
+
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        console.log("Controller changed")
+      })
+
+      console.warn(`Successfully unregistered service worker`)
+
+      while (true) {
+        const start = Date.now()
+
+        alert(`An unexpected update attack was detected. Your storage has been safely erased. Please report this incident urgently. Please do not use this website anymore.`)
+
+        if (Date.now() - start > 1000)
+          break
+        continue
+      }
+
+      location.assign("about:blank")
+    })
+
     const updatedRes = await fetch("/service_worker.js", { cache: "reload" })
     const updatedBytes = new Uint8Array(await updatedRes.arrayBuffer())
     const updatedHashBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", updatedBytes))
@@ -51,15 +98,15 @@ export namespace StickyServiceWorker {
 
     const currentHashRawHex = JsonLocalStorage.getOrSet("service_worker.current.hashRawHex", updatedHashRawHex)
 
-    const registration = await navigator.serviceWorker.register(`/service_worker.proxy.js?hash=${currentHashRawHex}`, { updateViaCache: "all" })
-
-    registration.addEventListener("updatefound", async () => alert("Update found"))
+    await navigator.serviceWorker.register(`/service_worker.proxy.js?hash=${currentHashRawHex}`, { updateViaCache: "all" })
 
     if (currentHashRawHex === updatedHashRawHex)
       return
 
-    JsonLocalStorage.set("service_worker.pending.hashRawHex", updatedHashRawHex)
-    return () => JsonLocalStorage.set("service_worker.current.hashRawHex", updatedHashRawHex)
+    return () => {
+      JsonLocalStorage.set("service_worker.pending.hashRawHex", updatedHashRawHex)
+      JsonLocalStorage.set("service_worker.current.hashRawHex", updatedHashRawHex)
+    }
   }
 
 }
@@ -74,12 +121,12 @@ export function BackgroundProvider(props: {
   const connectOrThrow = useCallback(async () => {
     const channel = new MessageChannel()
 
-    const update = await StickyServiceWorker.register(`/service_worker.proxy.js`)
+    const update = await StickyServiceWorker.register()
 
     /**
      * Reload if a new service worker is installed during the session
      */
-    // navigator.serviceWorker.addEventListener("controllerchange", () => location.reload())
+    navigator.serviceWorker.addEventListener("controllerchange", () => location.reload())
 
     const serviceWorker = navigator.serviceWorker.controller!
 
