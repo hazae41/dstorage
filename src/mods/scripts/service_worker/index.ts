@@ -8,8 +8,6 @@ export { };
 
 declare const self: ServiceWorkerGlobalScope
 
-const version = 11
-
 self.addEventListener("install", (event) => {
   event.waitUntil(self.skipWaiting())
 })
@@ -40,8 +38,6 @@ self.addEventListener("message", async (event) => {
       return
 
     const pageRouter = new RpcRouter(pagePort)
-
-    pageRouter.handlers.set("sw_version", async () => [version])
 
     pageRouter.handlers.set("sw_size", async () => [await self.clients.matchAll().then(r => r.length)])
 
@@ -192,5 +188,3 @@ self.addEventListener("message", async (event) => {
     }
   }
 })
-
-console.log("Service Worker is running version", version)

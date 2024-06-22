@@ -125,13 +125,6 @@ export function BackgroundProvider(props: {
 
     await backgroundRouter.helloOrThrow(AbortSignal.timeout(1000));
 
-    const version = await backgroundRouter.requestOrThrow<number>({
-      method: "sw_version"
-    }).then(([r]) => r.unwrap());
-
-    (window as any).version = version;
-    (window as any).update = update;
-
     setBackground(backgroundRouter)
 
     backgroundRouter.resolveOnClose.promise.then(() => setBackground(undefined))
