@@ -28,8 +28,7 @@ const nextConfig = {
     rmSync("./.webpack", { force: true, recursive: true })
 
     promise = Promise.all([
-      compileServiceWorker(config, options),
-      compileServiceWorkerProxy(config, options)
+      compileServiceWorker(config, options)
     ])
 
     return config
@@ -120,16 +119,6 @@ async function compileServiceWorker(config, options) {
       minimizer: [new TerserPlugin()]
     }
   })
-}
-
-/**
- * @param {import("next/dist/server/config-shared").WebpackConfigContext} options
- */
-async function compileServiceWorkerProxy(config, options) {
-  const content = readFileSync(`./src/mods/scripts/service_worker_proxy/index.js`)
-  const hash = createHash("sha256").update(content).digest("hex")
-
-  copyFileSync(`./src/mods/scripts/service_worker_proxy/index.js`, `./public/${hash}.h.js`)
 }
 
 module.exports = nextConfig

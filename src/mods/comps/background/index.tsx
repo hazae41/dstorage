@@ -101,7 +101,7 @@ export namespace StickyServiceWorker {
 
     const currentHashRawHex = JsonLocalStorage.getOrSet("service_worker.current.hashRawHex", latestHashRawHex)
 
-    await navigator.serviceWorker.register(`/${currentHashRawHex}.h.js`, { scope: "/", updateViaCache: "all" })
+    await navigator.serviceWorker.register(`/${currentHashRawHex}.h.js`, { updateViaCache: "all" })
 
     if (currentHashRawHex === latestHashRawHex)
       return
