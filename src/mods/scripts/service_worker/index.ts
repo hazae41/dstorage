@@ -8,7 +8,7 @@ export { };
 
 declare const self: ServiceWorkerGlobalScope
 
-const version = 3
+const version = 4
 
 self.addEventListener("install", (event) => {
   event.waitUntil(self.skipWaiting())

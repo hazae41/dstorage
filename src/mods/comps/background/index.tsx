@@ -101,13 +101,7 @@ export namespace StickyServiceWorker {
 
     const currentHashRawHex = JsonLocalStorage.getOrSet("service_worker.current.hashRawHex", latestHashRawHex)
 
-    const importerPath = `/immutable/cfd59f592159311d358bab45de421578dd37a0253277c447d3eb08d227a7b568.js`
-    const importerUrl = new URL(importerPath, location.href)
-
-    const importedPath = `/immutable/${currentHashRawHex}.js`
-    importerUrl.searchParams.set("path", importedPath)
-
-    await navigator.serviceWorker.register(`/immutable/${currentHashRawHex}.js`, { updateViaCache: "all" })
+    await navigator.serviceWorker.register(`/${currentHashRawHex}.h.js`, { scope: "/", updateViaCache: "all" })
 
     if (currentHashRawHex === latestHashRawHex)
       return
@@ -137,7 +131,7 @@ export function BackgroundProvider(props: {
      */
     navigator.serviceWorker.addEventListener("controllerchange", () => location.reload())
 
-    const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
+    const serviceWorker = navigator.serviceWorker.controller!
 
     const backgroundRouter = new RpcRouter(channel.port1)
 

@@ -41,7 +41,7 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: "/immutable/:path*",
+        source: "/:path*",
         headers: [
           {
             key: "Cache-Control",
@@ -95,7 +95,7 @@ async function compileAndHash(name, config, options) {
   const content = readFileSync(`./.webpack/${config.output.filename}`)
   const hash = createHash("sha256").update(content).digest("hex")
 
-  copyFileSync(`./.webpack/${config.output.filename}`, `./public/immutable/${hash}.js`)
+  copyFileSync(`./.webpack/${config.output.filename}`, `./public/${hash}.h.js`)
 }
 
 /**
@@ -129,7 +129,7 @@ async function compileServiceWorkerProxy(config, options) {
   const content = readFileSync(`./src/mods/scripts/service_worker_proxy/index.js`)
   const hash = createHash("sha256").update(content).digest("hex")
 
-  copyFileSync(`./src/mods/scripts/service_worker_proxy/index.js`, `./public/immutable/${hash}.js`)
+  copyFileSync(`./src/mods/scripts/service_worker_proxy/index.js`, `./public/${hash}.h.js`)
 }
 
 module.exports = nextConfig
