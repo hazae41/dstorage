@@ -63,7 +63,7 @@ export namespace StickyServiceWorker {
       if (pendingHashRawHex != null)
         return
 
-      console.warn(`Unexpected service worker update detected`)
+      console.warn(`Unsolicited service worker update detected`)
 
       localStorage.clear()
       sessionStorage.clear()
@@ -71,10 +71,6 @@ export namespace StickyServiceWorker {
       console.warn(`Successfully cleared storage`)
 
       registration.unregister()
-
-      navigator.serviceWorker.addEventListener("controllerchange", () => {
-        console.log("Controller changed")
-      })
 
       console.warn(`Successfully unregistered service worker`)
 
