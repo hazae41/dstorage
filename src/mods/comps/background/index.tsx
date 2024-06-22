@@ -63,9 +63,6 @@ export namespace StickyServiceWorker {
       if (pendingHashRawHex != null)
         return
 
-      alert("Update found")
-      return
-
       console.warn(`Unexpected service worker update detected`)
 
       localStorage.clear()
@@ -81,17 +78,10 @@ export namespace StickyServiceWorker {
 
       console.warn(`Successfully unregistered service worker`)
 
-      while (true) {
-        const start = Date.now()
+      while (true)
+        alert(`An unsolicited update attack was detected. Your storage has been safely erased. Please report this incident urgently. Please do not use this website anymore. Please close this page.`)
 
-        alert(`An unexpected update attack was detected. Your storage has been safely erased. Please report this incident urgently. Please do not use this website anymore.`)
-
-        if (Date.now() - start > 1000)
-          break
-        continue
-      }
-
-      location.assign("about:blank")
+      return
     })
 
     const latestRes = await fetch("/service_worker.js", { cache: "reload" })

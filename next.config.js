@@ -1,5 +1,5 @@
 const webpack = require("webpack")
-const { copyFileSync, rmSync, readFileSync } = require("fs")
+const { copyFileSync, rmSync, readFileSync, readdir, readdirSync } = require("fs")
 const TerserPlugin = require("terser-webpack-plugin")
 const Log = require("next/dist/build/output/log")
 const path = require("path")
@@ -26,6 +26,10 @@ const nextConfig = {
       return config
 
     rmSync("./.webpack", { force: true, recursive: true })
+
+    for (const file of readdirSync("./public"))
+      if (file.endsWith(".h.js"))
+        rmSync(`./public/${file}`, { force: true })
 
     promise = Promise.all([
       compileServiceWorker(config, options)
