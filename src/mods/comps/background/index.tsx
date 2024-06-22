@@ -58,9 +58,9 @@ export namespace StickyServiceWorker {
     const registration = await navigator.serviceWorker.getRegistration()
 
     registration?.addEventListener("updatefound", async () => {
-      const updated = JsonLocalStorage.getAndSet("service_worker.updated", true)
+      const pendingHashRawHex = JsonLocalStorage.getAndSet("service_worker.pending.hashRawHex", undefined)
 
-      if (!updated)
+      if (pendingHashRawHex != null)
         return
 
       alert("Update found")
@@ -99,21 +99,22 @@ export namespace StickyServiceWorker {
     const latestHashBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", latestBytes))
     const latestHashRawHex = Array.from(latestHashBytes).map(b => b.toString(16).padStart(2, "0")).join("")
 
-    const hashRawHex = JsonLocalStorage.getOrSet("service_worker.hashRawHex", latestHashRawHex)
+    const currentHashRawHex = JsonLocalStorage.getOrSet("service_worker.current.hashRawHex", latestHashRawHex)
 
-    // if (!JsonLocalStorage.get("service_worker.registered")) {
-    alert("Registering")
-    await navigator.serviceWorker.register(`/service_worker.proxy.js?hash=${hashRawHex}`, { updateViaCache: "all" })
-    JsonLocalStorage.set("service_worker.registered", true)
-    // }
+    const importerPath = `/immutable/cfd59f592159311d358bab45de421578dd37a0253277c447d3eb08d227a7b568.js`
+    const importerUrl = new URL(importerPath, location.href)
 
-    if (hashRawHex === latestHashRawHex)
+    const importedPath = `/immutable/${currentHashRawHex}.js`
+    importerUrl.searchParams.set("path", importedPath)
+
+    await navigator.serviceWorker.register(`/immutable/${currentHashRawHex}.js`, { updateViaCache: "all" })
+
+    if (currentHashRawHex === latestHashRawHex)
       return
 
     return () => {
-      JsonLocalStorage.set("service_worker.hashRawHex", latestHashRawHex)
-      JsonLocalStorage.set("service_worker.registered", false)
-      JsonLocalStorage.set("service_worker.updated", false)
+      JsonLocalStorage.set("service_worker.current.hashRawHex", latestHashRawHex)
+      JsonLocalStorage.set("service_worker.pending.hashRawHex", latestHashRawHex)
     }
   }
 
@@ -136,9 +137,7 @@ export function BackgroundProvider(props: {
      */
     navigator.serviceWorker.addEventListener("controllerchange", () => location.reload())
 
-    const serviceWorker = navigator.serviceWorker.controller!
-
-    alert(`${serviceWorker == null}`)
+    const serviceWorker = await navigator.serviceWorker.ready.then(r => r.active!)
 
     const backgroundRouter = new RpcRouter(channel.port1)
 

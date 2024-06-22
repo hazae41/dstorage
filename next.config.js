@@ -1,8 +1,9 @@
 const webpack = require("webpack")
-const { copyFileSync, rmSync } = require("fs")
+const { copyFileSync, rmSync, readFileSync } = require("fs")
 const TerserPlugin = require("terser-webpack-plugin")
 const Log = require("next/dist/build/output/log")
 const path = require("path")
+const { createHash } = require("crypto")
 
 /**
  * @type {Promise<void> | undefined}
@@ -27,7 +28,8 @@ const nextConfig = {
     rmSync("./.webpack", { force: true, recursive: true })
 
     promise = Promise.all([
-      compileServiceWorker(config, options)
+      compileServiceWorker(config, options),
+      compileServiceWorkerProxy(config, options)
     ])
 
     return config
@@ -39,7 +41,7 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: "/service_worker.js",
+        source: "/immutable/:path*",
         headers: [
           {
             key: "Cache-Control",
@@ -47,15 +49,6 @@ const nextConfig = {
           },
         ],
       },
-      // {
-      //   source: "/service_worker.proxy.js",
-      //   headers: [
-      //     {
-      //       key: "Cache-Control",
-      //       value: "public, max-age=31536000, immutable",
-      //     },
-      //   ],
-      // },
     ]
   },
 }
@@ -83,8 +76,33 @@ async function compile(name, config, options) {
 /**
  * @param {import("next/dist/server/config-shared").WebpackConfigContext} options
  */
+async function compileAndHash(name, config, options) {
+  Log.wait(`compiling ${name}...`)
+
+  const start = Date.now()
+
+  const status = await new Promise(ok => webpack(config).run((_, status) => ok(status)))
+
+  if (status?.hasErrors()) {
+    Log.error(`failed to compile ${name}`)
+    Log.error(status.toString({ colors: true }))
+    throw new Error(`Compilation failed`)
+  }
+
+  Log.ready(`compiled ${name} in ${Date.now() - start} ms`)
+  copyFileSync(`./.webpack/${config.output.filename}`, `./public/${config.output.filename}`)
+
+  const content = readFileSync(`./.webpack/${config.output.filename}`)
+  const hash = createHash("sha256").update(content).digest("hex")
+
+  copyFileSync(`./.webpack/${config.output.filename}`, `./public/immutable/${hash}.js`)
+}
+
+/**
+ * @param {import("next/dist/server/config-shared").WebpackConfigContext} options
+ */
 async function compileServiceWorker(config, options) {
-  await compile("service_worker", {
+  await compileAndHash("service_worker", {
     devtool: false,
     target: "webworker",
     mode: config.mode,
@@ -102,6 +120,16 @@ async function compileServiceWorker(config, options) {
       minimizer: [new TerserPlugin()]
     }
   })
+}
+
+/**
+ * @param {import("next/dist/server/config-shared").WebpackConfigContext} options
+ */
+async function compileServiceWorkerProxy(config, options) {
+  const content = readFileSync(`./src/mods/scripts/service_worker_proxy/index.js`)
+  const hash = createHash("sha256").update(content).digest("hex")
+
+  copyFileSync(`./src/mods/scripts/service_worker_proxy/index.js`, `./public/immutable/${hash}.js`)
 }
 
 module.exports = nextConfig
