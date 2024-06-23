@@ -189,4 +189,4 @@ self.addEventListener("message", async (event) => {
   }
 })
 
-console.log(2)
+console.log(4)

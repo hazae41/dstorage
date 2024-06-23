@@ -76,10 +76,19 @@ export namespace StickyServiceWorker {
      * Update detection is not foolproof but acts as a canary for administrators and other users
      */
     registration?.addEventListener("updatefound", async () => {
+      const { installing } = registration
+
+      if (installing == null)
+        return
+
       const currentHashRawHex = JsonLocalStorage.get("service_worker.current.hashRawHex")
       const pendingHashRawHex = JsonLocalStorage.get("service_worker.pending.hashRawHex")
 
-      JsonLocalStorage.set("service_worker.pending.hashRawHex", undefined)
+      installing.addEventListener("statechange", async () => {
+        if (installing.state !== "installed")
+          return
+        JsonLocalStorage.set("service_worker.pending.hashRawHex", undefined)
+      })
 
       /**
        * An update was pending and solicited
