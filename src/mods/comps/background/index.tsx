@@ -55,44 +55,98 @@ export namespace JsonLocalStorage {
 export namespace StickyServiceWorker {
 
   export async function register() {
+    const bricked = JsonLocalStorage.get("service_worker.bricked")
+
+    if (bricked)
+      throw new Error(`This website is bricked`)
+
+    /**
+     * Get previous registration
+     */
     const registration = await navigator.serviceWorker.getRegistration()
 
+    /**
+     * Update detection is not foolproof but acts as a canary for administrators and other users
+     */
     registration?.addEventListener("updatefound", async () => {
       const pendingHashRawHex = JsonLocalStorage.getAndSet("service_worker.pending.hashRawHex", undefined)
 
+      /**
+       * An update was pending and solicited
+       */
       if (pendingHashRawHex != null)
         return
 
       console.warn(`Unsolicited service worker update detected`)
 
+      /**
+       * Only clear synchronous storage as we must be faster than the service worker
+       */
       localStorage.clear()
       sessionStorage.clear()
 
+      /**
+       * Asynchronous storages should be encrypted or contain only public data
+       */
+
       console.warn(`Successfully cleared storage`)
 
+      /**
+       * Unregister service worker to prevent further attacks
+       */
       registration.unregister()
 
       console.warn(`Successfully unregistered service worker`)
 
+      /**
+       * Enter brick mode
+       */
+      JsonLocalStorage.set("service_worker.bricked", true)
+
+      console.warn(`Successfully entered brick mode`)
+
       while (true)
         alert(`An unsolicited update attack was detected. Your storage has been safely erased. Please report this incident urgently. Please do not use this website anymore. Please close this page.`)
 
+      /**
+       * Page should be closed by now
+       */
       return
     })
 
     const latestRes = await fetch("/service_worker.js", { cache: "reload" })
-    const latestBytes = new Uint8Array(await latestRes.arrayBuffer())
-    const latestHashBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", latestBytes))
+
+    if (!latestRes.ok)
+      throw new Error(`Failed to fetch latest service worker`)
+
+    /**
+     * Heuristic to ensure that all resources are served as immutable
+     */
+    if (latestRes.headers.get("cache-control") !== "public, max-age=31536000, immutable")
+      throw new Error(`Invalid Cache-Control header found`)
+
+    const latestHashBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", await latestRes.arrayBuffer()))
     const latestHashRawHex = Array.from(latestHashBytes).map(b => b.toString(16).padStart(2, "0")).join("")
 
     const currentHashRawHex = JsonLocalStorage.getOrSet("service_worker.current.hashRawHex", latestHashRawHex)
 
     await navigator.serviceWorker.register(`/${currentHashRawHex}.h.js`, { updateViaCache: "all" })
 
+    /**
+     * No update found
+     */
     if (currentHashRawHex === latestHashRawHex)
       return
 
     return () => {
+      const currentHashRawHex = JsonLocalStorage.get("service_worker.current.hashRawHex")
+
+      /**
+       * Recheck to avoid concurrent updates
+       */
+      if (currentHashRawHex === latestHashRawHex)
+        return
+
       JsonLocalStorage.set("service_worker.current.hashRawHex", latestHashRawHex)
       JsonLocalStorage.set("service_worker.pending.hashRawHex", latestHashRawHex)
     }
