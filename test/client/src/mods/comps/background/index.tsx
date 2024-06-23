@@ -163,8 +163,6 @@ export namespace StickyServiceWorker {
       JsonLocalStorage.set("service_worker.pending.hashRawHex", latestHashRawHex)
 
       await navigator.serviceWorker.register(`/${latestHashRawHex}.h.js`, { updateViaCache: "all" })
-
-      navigator.serviceWorker.addEventListener("controllerchange", () => location.reload())
     }
   }
 
@@ -181,6 +179,8 @@ export function BackgroundProvider(props: {
     const update = await StickyServiceWorker.register()
 
     const worker = await navigator.serviceWorker.ready.then(r => r.active)
+
+    navigator.serviceWorker.addEventListener("controllerchange", () => location.reload())
 
     if (worker == null)
       return
