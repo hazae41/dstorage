@@ -2,11 +2,10 @@ import { RpcRouter } from "@/libs/jsonrpc"
 import { Nullable } from "@hazae41/option"
 import { ReactNode, createContext, useCallback, useContext, useEffect, useState } from "react"
 
-
 export interface Background {
   readonly router: RpcRouter
   readonly worker: ServiceWorker
-  readonly update?: () => void
+  readonly update?: () => Promise<void>
 }
 
 export const BackgroundContext = createContext<Nullable<Background>>(undefined)
@@ -151,7 +150,7 @@ export namespace StickyServiceWorker {
     if (currentHashRawHex === latestHashRawHex)
       return
 
-    return () => {
+    return async () => {
       const currentHashRawHex = JsonLocalStorage.get("service_worker.current.hashRawHex")
 
       /**
@@ -163,7 +162,9 @@ export namespace StickyServiceWorker {
       JsonLocalStorage.set("service_worker.current.hashRawHex", latestHashRawHex)
       JsonLocalStorage.set("service_worker.pending.hashRawHex", latestHashRawHex)
 
-      location.reload()
+      await navigator.serviceWorker.register(`/${latestHashRawHex}.h.js`, { updateViaCache: "all" })
+
+      navigator.serviceWorker.addEventListener("controllerchange", () => location.reload())
     }
   }
 
@@ -179,12 +180,7 @@ export function BackgroundProvider(props: {
   const connectOrThrow = useCallback(async () => {
     const update = await StickyServiceWorker.register()
 
-    /**
-     * Reload if a new service worker is installed during the session
-     */
-    navigator.serviceWorker.addEventListener("controllerchange", () => location.reload())
-
-    const worker = navigator.serviceWorker.controller
+    const worker = await navigator.serviceWorker.ready.then(r => r.active)
 
     if (worker == null)
       return

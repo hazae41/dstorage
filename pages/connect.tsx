@@ -30,11 +30,11 @@ export default function Home() {
 
       router.handlers.set("sw_update_check", () => [background.update != null])
 
-      router.handlers.set("sw_update_allow", () => {
+      router.handlers.set("sw_update_allow", async () => {
         if (background.update == null)
           return []
 
-        background.update()
+        await background.update()
 
         close()
 

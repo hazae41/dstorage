@@ -12,10 +12,6 @@ self.addEventListener("install", (event) => {
   event.waitUntil(self.skipWaiting())
 })
 
-self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim())
-})
-
 self.addEventListener("message", async (event) => {
   if (event.origin !== location.origin)
     return
@@ -189,4 +185,4 @@ self.addEventListener("message", async (event) => {
   }
 })
 
-console.log(4)
+console.log(8)
