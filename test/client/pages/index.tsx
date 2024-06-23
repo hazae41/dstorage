@@ -6,7 +6,7 @@ import { WindowMessenger } from "@/libs/messenger";
 import { useBackgroundContext } from "@/mods/comps/background";
 import { useCallback, useEffect, useState } from "react";
 
-const TARGET = new URL("https://necessity-abs-enjoyed-officer.trycloudflare.com")
+const TARGET = new URL("https://crude-coordinated-cbs-trends.trycloudflare.com")
 
 export interface Connector {
   readonly window: Window
@@ -17,7 +17,7 @@ export interface Connector {
 export default function Home() {
   const background = useBackgroundContext()
 
-  const [connected, setConnected] = useState(false)
+  const [piped, setPiped] = useState(false)
 
   const pingOrThrow = useCallback(async () => {
     while (!background.router.closed) {
@@ -27,9 +27,11 @@ export default function Home() {
           params: [{ method: "hello" }]
         }).then(([r]) => r.unwrap())
 
-        setConnected(true)
+        console.log("Connected")
+        setPiped(true)
       } catch (e: unknown) {
-        setConnected(false)
+        console.log("Not connected", e)
+        setPiped(false)
       } finally {
         await new Promise(ok => setTimeout(ok, 1000))
       }
@@ -41,6 +43,20 @@ export default function Home() {
   }, [pingOrThrow])
 
   const [connector, setConnector] = useState<Connector>()
+
+  const pipeOrThrow = useCallback(async (connector2 = connector) => {
+    const connector = connector2
+
+    if (connector == null)
+      return
+
+    const channel = new MessageChannel()
+
+    await WindowMessenger.pingOrThrow(connector.window, TARGET.origin)
+
+    connector.window.postMessage([{ method: "connect2" }], TARGET.origin, [channel.port1])
+    background.worker.postMessage([{ method: "connect3", params: [TARGET.origin] }], [channel.port2])
+  }, [background, connector])
 
   const connectOrThrow = useCallback(async () => {
     const window = open(`${TARGET.origin}/connect`, "_blank", "width=100,height=100")
@@ -61,44 +77,40 @@ export default function Home() {
       method: "sw_update_check"
     }).then(([r]) => r.unwrap())
 
-    setConnector({ router, window, updatable })
+    const connector = { router, window, updatable }
+
+    setConnector(connector)
 
     router.resolveOnClose.promise.then(() => setConnector(undefined))
 
-    /**
-     * TODO: Show a button to update the storage service worker
-     */
-    if (updatable) {
-
-      location.reload()
+    if (updatable)
       return
-    }
-  }, [connected])
+
+    await pipeOrThrow(connector)
+  }, [pipeOrThrow])
 
   const updateOrThrow = useCallback(async () => {
     if (connector == null)
       return
 
     await connector.router.requestOrThrow<void>({
-      method: "sw_update"
+      method: "sw_update_allow"
     }).then(([r]) => r.unwrap())
+
+    location.reload()
   }, [connector])
-
-  const pipeOrThrow = useCallback(async () => {
-    if (connector == null)
-      return
-
-    const channel = new MessageChannel()
-
-    await WindowMessenger.pingOrThrow(connector.window, TARGET.origin)
-
-    connector.window.postMessage([{ method: "connect2" }], TARGET.origin, [channel.port1])
-    background.worker.postMessage([{ method: "connect3", params: [TARGET.origin] }], [channel.port2])
-  }, [background, connector])
 
   const onConnectClick = useCallback(async () => {
     connectOrThrow()
   }, [connectOrThrow])
+
+  const onUpdateClick = useCallback(async () => {
+    updateOrThrow()
+  }, [updateOrThrow])
+
+  const onPipeClick = useCallback(async () => {
+    pipeOrThrow()
+  }, [pipeOrThrow])
 
   const onAskClick = useCallback(async () => {
     try {
@@ -242,12 +254,24 @@ export default function Home() {
       onClick={onAskClick}>
       Ask permission
     </button>
-    {!connected &&
+    {!piped && connector == null &&
       <button className="w-full"
         onClick={onConnectClick}>
         Connect
       </button>}
-    {connected && <>
+    {!piped && connector != null && connector?.updatable && <>
+      An update is available:
+      <button className="w-full"
+        onClick={onUpdateClick}>
+        Update
+      </button>
+      <button className="w-full"
+        onClick={onPipeClick}>
+        Ignore
+      </button>
+    </>}
+    {piped && <>
+      Connected:
       <button className="w-full"
         onClick={onSetClick}>
         Set value

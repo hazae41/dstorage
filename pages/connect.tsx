@@ -29,7 +29,17 @@ export default function Home() {
       const router = new RpcRouter(port)
 
       router.handlers.set("sw_update_check", () => [background.update != null])
-      router.handlers.set("sw_update_allow", () => [void background.update?.()])
+
+      router.handlers.set("sw_update_allow", () => {
+        if (background.update == null)
+          return []
+
+        background.update()
+
+        close()
+
+        return []
+      })
 
       await router.helloOrThrow(AbortSignal.timeout(1000))
 

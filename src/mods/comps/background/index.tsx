@@ -196,6 +196,21 @@ export function BackgroundProvider(props: {
     connectOrThrow().catch(console.error)
   }, [connectOrThrow])
 
+  const pingOrThrow = useCallback(async () => {
+    if (background == null)
+      return
+    background.worker.postMessage([{ method: "ping" }])
+  }, [background])
+
+  useEffect(() => {
+    if (background == null)
+      return
+
+    const i = setInterval(() => pingOrThrow(), 1000)
+
+    return () => clearInterval(i)
+  }, [background, pingOrThrow])
+
   if (background == null)
     return null
 
