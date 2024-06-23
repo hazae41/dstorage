@@ -32,6 +32,8 @@ export default function Home() {
       pageRouter.handlers.set("sw_update_allow", () => [void background.update?.()])
 
       await pageRouter.helloOrThrow(AbortSignal.timeout(1000))
+
+      return
     }
 
     if (message.method === "connect2") {

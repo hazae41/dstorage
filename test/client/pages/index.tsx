@@ -64,7 +64,21 @@ export default function Home() {
       method: "sw_update_check"
     }).then(([r]) => r.unwrap())
 
-    setUpdatable(updatable)
+    /**
+     * TODO: Show a button to update the storage service worker
+     */
+    if (updatable) {
+      await windowRouter.requestOrThrow<void>({
+        method: "sw_update_allow"
+      }).then(([r]) => r.unwrap())
+
+      location.reload()
+      return
+    }
+
+    /**
+     * Pipe and enter window in keepalive phase
+     */
 
     const serviceWorker = navigator.serviceWorker.controller!
 
@@ -247,11 +261,6 @@ export default function Home() {
         Connect
       </button>}
     {connected && <>
-      {connector && updatable &&
-        <button className="w-full"
-          onClick={() => connector.requestOrThrow<void>({ method: "sw_update_allow" })}>
-          Update storage
-        </button>}
       <button className="w-full"
         onClick={onSetClick}>
         Set value
