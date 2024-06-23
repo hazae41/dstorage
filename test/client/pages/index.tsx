@@ -6,7 +6,7 @@ import { WindowMessenger } from "@/libs/messenger";
 import { useBackgroundContext } from "@/mods/comps/background";
 import { useCallback, useEffect, useState } from "react";
 
-const TARGET = new URL("https://crude-coordinated-cbs-trends.trycloudflare.com")
+const TARGET = new URL("https://dstorage.hazae41.me")
 
 export interface Connector {
   readonly window: Window
