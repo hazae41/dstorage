@@ -106,7 +106,7 @@ export namespace StickyServiceWorker {
       console.warn(`Successfully entered brick mode`)
 
       while (true)
-        alert(`An unsolicited update attack was detected. Your storage has been safely erased. Please report this incident urgently. Please do not use this website anymore. Please close this page.`)
+        alert(`An unsolicited update attack was detected. Your storage has been safely erased. Please report this incident urgently. Please do not use this website (${location.origin}) anymore. Please close this page.`)
 
       /**
        * Page should be closed by now
