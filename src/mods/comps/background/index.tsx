@@ -2,7 +2,13 @@ import { RpcRouter } from "@/libs/jsonrpc"
 import { Nullable } from "@hazae41/option"
 import { ReactNode, createContext, useCallback, useContext, useEffect, useState } from "react"
 
-export const BackgroundContext = createContext<Nullable<RpcRouter>>(undefined)
+
+export interface Background {
+  readonly router: RpcRouter
+  readonly update?: () => void
+}
+
+export const BackgroundContext = createContext<Nullable<Background>>(undefined)
 
 export function useBackgroundContext() {
   const context = useContext(BackgroundContext)
@@ -119,12 +125,6 @@ export namespace StickyServiceWorker {
     if (!latestRes.ok)
       throw new Error(`Failed to fetch latest service worker`)
 
-    /**
-     * Heuristic to ensure that all resources are served as immutable
-     */
-    if (latestRes.headers.get("cache-control") !== "public, max-age=31536000, immutable")
-      throw new Error(`Invalid Cache-Control header found`)
-
     const latestHashBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", await latestRes.arrayBuffer()))
     const latestHashRawHex = Array.from(latestHashBytes).map(b => b.toString(16).padStart(2, "0")).join("")
 
@@ -149,6 +149,8 @@ export namespace StickyServiceWorker {
 
       JsonLocalStorage.set("service_worker.current.hashRawHex", latestHashRawHex)
       JsonLocalStorage.set("service_worker.pending.hashRawHex", latestHashRawHex)
+
+      location.reload()
     }
   }
 
@@ -159,7 +161,7 @@ export function BackgroundProvider(props: {
 }) {
   const { children } = props
 
-  const [background, setBackground] = useState<RpcRouter>()
+  const [background, setBackground] = useState<Background>()
 
   const connectOrThrow = useCallback(async () => {
     const channel = new MessageChannel()
@@ -173,15 +175,15 @@ export function BackgroundProvider(props: {
 
     const serviceWorker = navigator.serviceWorker.controller!
 
-    const backgroundRouter = new RpcRouter(channel.port1)
+    const router = new RpcRouter(channel.port1)
 
     serviceWorker.postMessage([{ method: "connect" }], [channel.port2])
 
-    await backgroundRouter.helloOrThrow(AbortSignal.timeout(1000));
+    await router.helloOrThrow(AbortSignal.timeout(1000));
 
-    setBackground(backgroundRouter)
+    setBackground({ router, update })
 
-    backgroundRouter.resolveOnClose.promise.then(() => setBackground(undefined))
+    router.resolveOnClose.promise.then(() => setBackground(undefined))
   }, [])
 
   useEffect(() => {

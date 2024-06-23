@@ -70,3 +70,5 @@ self.addEventListener("message", async (event) => {
     return
   }
 })
+
+console.log(4)

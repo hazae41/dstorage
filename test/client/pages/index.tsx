@@ -6,7 +6,7 @@ import { WindowMessenger } from "@/libs/messenger";
 import { useBackgroundContext } from "@/mods/comps/background";
 import { useCallback, useEffect, useState } from "react";
 
-const TARGET = new URL("https://developed-costumes-thru-provided.trycloudflare.com")
+const TARGET = new URL("https://necessity-abs-enjoyed-officer.trycloudflare.com")
 
 export default function Home() {
   const background = useBackgroundContext()
@@ -14,9 +14,9 @@ export default function Home() {
   const [connected, setConnected] = useState(false)
 
   const pingOrThrow = useCallback(async () => {
-    while (!background.closed) {
+    while (!background.router.closed) {
       try {
-        await background.requestOrThrow<boolean>({
+        await background.router.requestOrThrow<boolean>({
           method: "proxy",
           params: [{ method: "hello" }]
         }).then(([r]) => r.unwrap())
@@ -34,24 +34,42 @@ export default function Home() {
     pingOrThrow().catch(console.error)
   }, [pingOrThrow])
 
+  const [updatable, setUpdatable] = useState(false)
+  const [connector, setConnector] = useState<RpcRouter>()
+
   const connectOrThrow = useCallback(async () => {
     if (connected)
       return
 
-    const channel = new MessageChannel()
+    const swChannel = new MessageChannel()
+    const pgChannel = new MessageChannel()
+
     const window = open(`${TARGET.origin}/connect`, "_blank", "width=100,height=100")
 
     if (window == null)
       return
 
     const windowMessenger = new WindowMessenger(window, TARGET.origin)
-
-    const serviceWorker = navigator.serviceWorker.controller!
+    const windowRouter = new RpcRouter(pgChannel.port1)
 
     await windowMessenger.pingOrThrow()
 
-    window.postMessage([{ method: "connect2" }], TARGET.origin, [channel.port1])
-    serviceWorker.postMessage([{ method: "connect3", params: [TARGET.origin] }], [channel.port2])
+    window.postMessage([{ method: "connect" }], TARGET.origin, [pgChannel.port2])
+
+    await windowRouter.helloOrThrow(AbortSignal.timeout(1000))
+
+    setConnector(windowRouter)
+
+    const updatable = await windowRouter.requestOrThrow<boolean>({
+      method: "sw_update_check"
+    }).then(([r]) => r.unwrap())
+
+    setUpdatable(updatable)
+
+    const serviceWorker = navigator.serviceWorker.controller!
+
+    window.postMessage([{ method: "connect2" }], TARGET.origin, [swChannel.port1])
+    serviceWorker.postMessage([{ method: "connect3", params: [TARGET.origin] }], [swChannel.port2])
   }, [connected])
 
   const onConnectClick = useCallback(async () => {
@@ -214,6 +232,11 @@ export default function Home() {
   }, [getOrThrow])
 
   return <main className="">
+    {background.update != null &&
+      <button className="w-full"
+        onClick={background.update}>
+        Update
+      </button>}
     <button className="w-full"
       onClick={onAskClick}>
       Ask permission
@@ -224,6 +247,11 @@ export default function Home() {
         Connect
       </button>}
     {connected && <>
+      {connector && updatable &&
+        <button className="w-full"
+          onClick={() => connector.requestOrThrow<void>({ method: "sw_update_allow" })}>
+          Update storage
+        </button>}
       <button className="w-full"
         onClick={onSetClick}>
         Set value

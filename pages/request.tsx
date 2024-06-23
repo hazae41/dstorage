@@ -92,7 +92,7 @@ export function KvAsk(props: {
   const [scope, capacity] = params as [string, number]
 
   const onAllow = useCallback(async () => {
-    await background.requestOrThrow<void>({
+    await background.router.requestOrThrow<void>({
       method: "kv_ask",
       params: [scope, origin, capacity]
     }, [], AbortSignal.timeout(1000)).then(([r]) => r.unwrap())

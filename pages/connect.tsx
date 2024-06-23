@@ -1,5 +1,6 @@
 import "@hazae41/symbol-dispose-polyfill";
 
+import { RpcRouter } from "@/libs/jsonrpc";
 import { useBackgroundContext } from "@/mods/comps/background";
 import { RpcRequestPreinit } from "@hazae41/jsonrpc";
 import { useCallback, useEffect } from "react";
@@ -19,6 +20,20 @@ export default function Home() {
       return
     }
 
+    if (message.method === "connect") {
+      const [pagePort] = event.ports
+
+      if (pagePort == null)
+        return
+
+      const pageRouter = new RpcRouter(pagePort)
+
+      pageRouter.handlers.set("sw_update_check", () => [background.update != null])
+      pageRouter.handlers.set("sw_update_allow", () => [void background.update?.()])
+
+      await pageRouter.helloOrThrow(AbortSignal.timeout(1000))
+    }
+
     if (message.method === "connect2") {
       const [parentPort] = event.ports
 
@@ -29,7 +44,7 @@ export default function Home() {
 
       serviceWorker.postMessage([{ method: "connect3", params: [event.origin] }], [parentPort])
 
-      const size = await background.requestOrThrow<number>({ method: "sw_size" }).then(([r]) => r.unwrap())
+      const size = await background.router.requestOrThrow<number>({ method: "sw_size" }).then(([r]) => r.unwrap())
 
       if (size > 1)
         close()
