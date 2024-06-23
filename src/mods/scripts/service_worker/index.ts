@@ -8,8 +8,47 @@ export { };
 
 declare const self: ServiceWorkerGlobalScope
 
+declare const FILES_AND_HASHES: [string, string][]
+
 self.addEventListener("install", (event) => {
   self.skipWaiting()
+})
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(caches.delete("meta"))
+})
+
+const filesAndHashes = new Map(FILES_AND_HASHES)
+
+async function uncache(request: Request) {
+  const cache = await caches.open("meta")
+  const cached = await cache.match(request)
+
+  if (cached != null)
+    return cached
+
+  const url = new URL(request.url)
+
+  if (!filesAndHashes.has(url.pathname))
+    throw new Error("Invalid path")
+
+  const fetched = await fetch(request)
+  const cloned = fetched.clone()
+  const bytes = await cloned.arrayBuffer()
+
+  const hashBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))
+  const hashRawHex = Array.from(hashBytes).map(b => b.toString(16).padStart(2, "0")).join("")
+
+  if (hashRawHex !== filesAndHashes.get(url.pathname))
+    throw new Error("Invalid hash")
+
+  cache.put(request, fetched.clone())
+
+  return fetched
+}
+
+self.addEventListener("fetch", (event) => {
+  event.respondWith(uncache(event.request))
 })
 
 self.addEventListener("message", async (event) => {
@@ -39,6 +78,9 @@ self.addEventListener("message", async (event) => {
 
     router.handlers.set("kv_ask", async (request) => {
       const [scope, origin, capacity] = request.params as [string, string, number]
+
+      if (scope === "meta")
+        throw new Error("Not allowed")
 
       const cache = await caches.open(scope)
 
@@ -89,6 +131,9 @@ self.addEventListener("message", async (event) => {
       router.handlers.set("kv_ask", async (request) => {
         const [scope] = request.params as [string]
 
+        if (scope === "meta")
+          throw new Error("Not allowed")
+
         const cache = await caches.open(scope)
 
         const allowedUrl = new URL("/allowed", "http://meta")
@@ -104,6 +149,9 @@ self.addEventListener("message", async (event) => {
 
       router.handlers.set("kv_set", async (request) => {
         const [scope, req, res] = request.params as [string, RequestLike, ResponseLike]
+
+        if (scope === "meta")
+          throw new Error("Not allowed")
 
         const cache = await caches.open(scope)
 
@@ -151,6 +199,9 @@ self.addEventListener("message", async (event) => {
 
       router.handlers.set("kv_get", async (request) => {
         const [scope, req] = request.params as [string, RequestLike]
+
+        if (scope === "meta")
+          throw new Error("Not allowed")
 
         const cache = await caches.open(scope)
 
