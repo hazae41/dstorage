@@ -1,4 +1,5 @@
 import { RpcRouter } from "@/libs/jsonrpc"
+import { Future } from "@hazae41/future"
 import { Nullable } from "@hazae41/option"
 import { ReactNode, createContext, useCallback, useContext, useEffect, useState } from "react"
 
@@ -151,6 +152,16 @@ export namespace StickyServiceWorker {
       return
 
     return async () => {
+      const registration = await navigator.serviceWorker.getRegistration()
+
+      if (registration == null)
+        return
+
+      const { active } = registration
+
+      if (active == null)
+        return
+
       const currentHashRawHex = JsonLocalStorage.get("service_worker.current.hashRawHex")
 
       /**
@@ -162,7 +173,16 @@ export namespace StickyServiceWorker {
       JsonLocalStorage.set("service_worker.current.hashRawHex", latestHashRawHex)
       JsonLocalStorage.set("service_worker.pending.hashRawHex", latestHashRawHex)
 
+      const future = new Future<void>()
+
+      active.addEventListener("statechange", async () => {
+        if (active.state !== "redundant")
+          return
+        future.resolve()
+      })
+
       await navigator.serviceWorker.register(`/${latestHashRawHex}.h.js`, { updateViaCache: "all" })
+      await future.promise
     }
   }
 
@@ -192,9 +212,15 @@ export function BackgroundProvider(props: {
 
     await router.helloOrThrow(AbortSignal.timeout(1000))
 
-    setBackground({ router, worker, update })
+    const background = { router, worker, update }
 
-    router.resolveOnClose.promise.then(() => setBackground(undefined))
+    setBackground(background)
+
+    router.resolveOnClose.promise.then(() => setBackground(current => {
+      if (current !== background)
+        return current
+      return undefined
+    }))
   }, [])
 
   useEffect(() => {

@@ -81,11 +81,14 @@ export default function Home() {
 
     setConnector(connector)
 
-    router.resolveOnClose.promise.then(() => setConnector(undefined))
+    router.resolveOnClose.promise.then(() => setConnector(current => {
+      if (current !== connector)
+        return current
+      return undefined
+    }))
 
     if (updatable)
       return
-
     await pipeOrThrow(connector)
   }, [pipeOrThrow])
 
@@ -97,7 +100,7 @@ export default function Home() {
       method: "sw_update_allow"
     }).then(([r]) => r.unwrap())
 
-    location.reload()
+    await connectOrThrow()
   }, [connector])
 
   const onConnectClick = useCallback(async () => {
