@@ -8,6 +8,12 @@ import { useCallback, useEffect, useState } from "react";
 
 const TARGET = new URL("https://necessity-abs-enjoyed-officer.trycloudflare.com")
 
+export interface Connector {
+  readonly window: Window
+  readonly router: RpcRouter
+  readonly updatable: boolean
+}
+
 export default function Home() {
   const background = useBackgroundContext()
 
@@ -34,57 +40,61 @@ export default function Home() {
     pingOrThrow().catch(console.error)
   }, [pingOrThrow])
 
-  const [updatable, setUpdatable] = useState(false)
-  const [connector, setConnector] = useState<RpcRouter>()
+  const [connector, setConnector] = useState<Connector>()
 
   const connectOrThrow = useCallback(async () => {
-    if (connected)
-      return
-
-    const swChannel = new MessageChannel()
-    const pgChannel = new MessageChannel()
-
     const window = open(`${TARGET.origin}/connect`, "_blank", "width=100,height=100")
 
     if (window == null)
       return
 
-    const windowMessenger = new WindowMessenger(window, TARGET.origin)
-    const windowRouter = new RpcRouter(pgChannel.port1)
+    const channel = new MessageChannel()
+    const router = new RpcRouter(channel.port1)
 
-    await windowMessenger.pingOrThrow()
+    await WindowMessenger.pingOrThrow(window, TARGET.origin)
 
-    window.postMessage([{ method: "connect" }], TARGET.origin, [pgChannel.port2])
+    window.postMessage([{ method: "connect" }], TARGET.origin, [channel.port2])
 
-    await windowRouter.helloOrThrow(AbortSignal.timeout(1000))
+    await router.helloOrThrow(AbortSignal.timeout(1000))
 
-    setConnector(windowRouter)
-
-    const updatable = await windowRouter.requestOrThrow<boolean>({
+    const updatable = await router.requestOrThrow<boolean>({
       method: "sw_update_check"
     }).then(([r]) => r.unwrap())
+
+    setConnector({ router, window, updatable })
+
+    router.resolveOnClose.promise.then(() => setConnector(undefined))
 
     /**
      * TODO: Show a button to update the storage service worker
      */
     if (updatable) {
-      await windowRouter.requestOrThrow<void>({
-        method: "sw_update_allow"
-      }).then(([r]) => r.unwrap())
 
       location.reload()
       return
     }
-
-    /**
-     * Pipe and enter window in keepalive phase
-     */
-
-    const serviceWorker = navigator.serviceWorker.controller!
-
-    window.postMessage([{ method: "connect2" }], TARGET.origin, [swChannel.port1])
-    serviceWorker.postMessage([{ method: "connect3", params: [TARGET.origin] }], [swChannel.port2])
   }, [connected])
+
+  const updateOrThrow = useCallback(async () => {
+    if (connector == null)
+      return
+
+    await connector.router.requestOrThrow<void>({
+      method: "sw_update"
+    }).then(([r]) => r.unwrap())
+  }, [connector])
+
+  const pipeOrThrow = useCallback(async () => {
+    if (connector == null)
+      return
+
+    const channel = new MessageChannel()
+
+    await WindowMessenger.pingOrThrow(connector.window, TARGET.origin)
+
+    connector.window.postMessage([{ method: "connect2" }], TARGET.origin, [channel.port1])
+    background.worker.postMessage([{ method: "connect3", params: [TARGET.origin] }], [channel.port2])
+  }, [background, connector])
 
   const onConnectClick = useCallback(async () => {
     connectOrThrow()
@@ -92,22 +102,21 @@ export default function Home() {
 
   const onAskClick = useCallback(async () => {
     try {
-      const channel = new MessageChannel()
       const window = open(`${TARGET.origin}/request`, "_blank")
 
       if (window == null)
         return
 
-      const windowMessenger = new WindowMessenger(window, TARGET.origin)
-      const windowRouter = new RpcRouter(channel.port1)
+      const channel = new MessageChannel()
+      const router = new RpcRouter(channel.port1)
 
-      await windowMessenger.pingOrThrow()
+      await WindowMessenger.pingOrThrow(window, TARGET.origin)
 
       window.postMessage([{ method: "connect" }], TARGET.origin, [channel.port2])
 
-      await windowRouter.helloOrThrow(AbortSignal.timeout(1000))
+      await router.helloOrThrow(AbortSignal.timeout(1000))
 
-      await windowRouter.requestOrThrow<void>({
+      await router.requestOrThrow<void>({
         method: "kv_ask",
         params: ["example", 5_000_000],
       }, [], AbortSignal.timeout(60_000)).then(([r]) => r.unwrap())
@@ -117,24 +126,14 @@ export default function Home() {
   }, [])
 
   const setOrThrow = useCallback(async (scope: string, req: TransferableRequest, res: TransferableResponse) => {
-    const channel = new MessageChannel()
-
-    const serviceWorker = navigator.serviceWorker.controller!
-
-    const backgroundRouter = new RpcRouter(channel.port1)
-
-    serviceWorker.postMessage([{ method: "connect" }], [channel.port2])
-
-    await backgroundRouter.helloOrThrow(AbortSignal.timeout(1000))
-
-    await backgroundRouter.requestOrThrow<void>({
+    await background.router.requestOrThrow<void>({
       method: "proxy",
       params: [{
         method: "kv_set",
         params: [scope, req.toJSON(), res.toJSON()],
       }]
     }, [...req.transferables, ...res.transferables]).then(([r]) => r.unwrap())
-  }, [])
+  }, [background])
 
   const onSetClick = useCallback(async () => {
     try {
@@ -147,17 +146,7 @@ export default function Home() {
   }, [setOrThrow])
 
   const getOrThrow = useCallback(async (scope: string, req: TransferableRequest) => {
-    const channel = new MessageChannel()
-
-    const serviceWorker = navigator.serviceWorker.controller!
-
-    const backgroundRouter = new RpcRouter(channel.port1)
-
-    serviceWorker.postMessage([{ method: "connect" }], [channel.port2])
-
-    await backgroundRouter.helloOrThrow(AbortSignal.timeout(1000))
-
-    const res = await backgroundRouter.requestOrThrow<ResponseLike>({
+    const res = await background.router.requestOrThrow<ResponseLike>({
       method: "proxy",
       params: [{
         method: "kv_get",
@@ -166,7 +155,7 @@ export default function Home() {
     }, req.transferables).then(([r]) => r.unwrap())
 
     return new Response(res.body, res)
-  }, [])
+  }, [background])
 
   const onGetClick = useCallback(async () => {
     try {
@@ -181,24 +170,23 @@ export default function Home() {
 
   const onWebAuthnCreateClick = useCallback(async () => {
     try {
-      const channel = new MessageChannel()
       const window = open(`${TARGET.origin}/request`, "_blank")
 
       if (window == null)
         return
 
-      const windowMessenger = new WindowMessenger(window, TARGET.origin)
-      const windowRouter = new RpcRouter(channel.port1)
+      const channel = new MessageChannel()
+      const router = new RpcRouter(channel.port1)
 
-      await windowMessenger.pingOrThrow()
+      await WindowMessenger.pingOrThrow(window, TARGET.origin)
 
       window.postMessage([{ method: "connect" }], TARGET.origin, [channel.port2])
 
-      await windowRouter.helloOrThrow(AbortSignal.timeout(1000))
+      await router.helloOrThrow(AbortSignal.timeout(1000))
 
       const data = new Uint8Array([1, 2, 3, 4, 5])
 
-      const handle = await windowRouter.requestOrThrow<any>({
+      const handle = await router.requestOrThrow<any>({
         method: "webauthn_storage_create",
         params: ["Example", data],
       }, [], AbortSignal.timeout(60_000)).then(([r]) => r.unwrap())
@@ -215,26 +203,25 @@ export default function Home() {
 
   const onWebAuthnGetClick = useCallback(async () => {
     try {
-      const req = new TransferableRequest("https://example.com/handle")
-      const res = await getOrThrow("example", req)
-      const handle = new Uint8Array(await res.arrayBuffer())
-
-      const channel = new MessageChannel()
       const window = open(`${TARGET.origin}/request`, "_blank")
 
       if (window == null)
         return
 
-      const windowMessenger = new WindowMessenger(window, TARGET.origin)
-      const windowRouter = new RpcRouter(channel.port1)
+      const channel = new MessageChannel()
+      const router = new RpcRouter(channel.port1)
 
-      await windowMessenger.pingOrThrow()
+      await WindowMessenger.pingOrThrow(window, TARGET.origin)
 
       window.postMessage([{ method: "connect" }], TARGET.origin, [channel.port2])
 
-      await windowRouter.helloOrThrow(AbortSignal.timeout(1000))
+      await router.helloOrThrow(AbortSignal.timeout(1000))
 
-      const data = await windowRouter.requestOrThrow<any>({
+      const req = new TransferableRequest("https://example.com/handle")
+      const res = await getOrThrow("example", req)
+      const handle = new Uint8Array(await res.arrayBuffer())
+
+      const data = await router.requestOrThrow<any>({
         method: "webauthn_storage_get",
         params: [handle],
       }, [], AbortSignal.timeout(60_000)).then(([r]) => r.unwrap())

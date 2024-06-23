@@ -5,6 +5,7 @@ import { ReactNode, createContext, useCallback, useContext, useEffect, useState 
 
 export interface Background {
   readonly router: RpcRouter
+  readonly worker: ServiceWorker
   readonly update?: () => void
 }
 
@@ -167,8 +168,6 @@ export function BackgroundProvider(props: {
   const [background, setBackground] = useState<Background>()
 
   const connectOrThrow = useCallback(async () => {
-    const channel = new MessageChannel()
-
     const update = await StickyServiceWorker.register()
 
     /**
@@ -176,15 +175,19 @@ export function BackgroundProvider(props: {
      */
     navigator.serviceWorker.addEventListener("controllerchange", () => location.reload())
 
-    const serviceWorker = navigator.serviceWorker.controller!
+    const worker = navigator.serviceWorker.controller
 
+    if (worker == null)
+      return
+
+    const channel = new MessageChannel()
     const router = new RpcRouter(channel.port1)
 
-    serviceWorker.postMessage([{ method: "connect" }], [channel.port2])
+    worker.postMessage([{ method: "connect" }], [channel.port2])
 
-    await router.helloOrThrow(AbortSignal.timeout(1000));
+    await router.helloOrThrow(AbortSignal.timeout(1000))
 
-    setBackground({ router, update })
+    setBackground({ router, worker, update })
 
     router.resolveOnClose.promise.then(() => setBackground(undefined))
   }, [])

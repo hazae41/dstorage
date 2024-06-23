@@ -32,16 +32,16 @@ self.addEventListener("message", async (event) => {
    * sameOrigin -> serviceWorker
    */
   if (message.method === "connect") {
-    const [pagePort] = event.ports
+    const [port] = event.ports
 
-    if (pagePort == null)
+    if (port == null)
       return
 
-    const pageRouter = new RpcRouter(pagePort)
+    const router = new RpcRouter(port)
 
-    pageRouter.handlers.set("sw_size", async () => [await self.clients.matchAll().then(r => r.length)])
+    router.handlers.set("sw_size", async () => [await self.clients.matchAll().then(r => r.length)])
 
-    pageRouter.handlers.set("kv_ask", async (request) => {
+    router.handlers.set("kv_ask", async (request) => {
       const [scope, origin, capacity] = request.params as [string, string, number]
 
       const cache = await caches.open(scope)
@@ -68,7 +68,7 @@ self.addEventListener("message", async (event) => {
       return [] as const
     })
 
-    await pageRouter.helloOrThrow(AbortSignal.timeout(1000))
+    await router.helloOrThrow(AbortSignal.timeout(1000))
 
     return
   }
@@ -82,15 +82,15 @@ self.addEventListener("message", async (event) => {
     if (origin == null)
       return
 
-    const [originPort] = event.ports
+    const [port] = event.ports
 
-    if (originPort == null)
+    if (port == null)
       return
 
     if (origin !== location.origin) {
-      const originRouter = new RpcRouter(originPort)
+      const router = new RpcRouter(port)
 
-      originRouter.handlers.set("kv_ask", async (request) => {
+      router.handlers.set("kv_ask", async (request) => {
         const [scope] = request.params as [string]
 
         const cache = await caches.open(scope)
@@ -106,7 +106,7 @@ self.addEventListener("message", async (event) => {
         return []
       })
 
-      originRouter.handlers.set("kv_set", async (request) => {
+      router.handlers.set("kv_set", async (request) => {
         const [scope, req, res] = request.params as [string, RequestLike, ResponseLike]
 
         const cache = await caches.open(scope)
@@ -153,7 +153,7 @@ self.addEventListener("message", async (event) => {
         return []
       })
 
-      originRouter.handlers.set("kv_get", async (request) => {
+      router.handlers.set("kv_get", async (request) => {
         const [scope, req] = request.params as [string, RequestLike]
 
         const cache = await caches.open(scope)
@@ -182,7 +182,7 @@ self.addEventListener("message", async (event) => {
         return [transValueRes.toJSON(), transValueRes.transferables]
       })
 
-      await originRouter.helloOrThrow(AbortSignal.timeout(1000))
+      await router.helloOrThrow(AbortSignal.timeout(1000))
 
       return
     }

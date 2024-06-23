@@ -30,11 +30,12 @@ export default function Home() {
     }
 
     if (message.method === "connect") {
-      const [parentPort] = event.ports
+      const [port] = event.ports
 
-      if (parentPort == null)
+      if (port == null)
         return
-      const parentRouter = new RpcRouter(parentPort)
+
+      const router = new RpcRouter(port)
 
       const onRequest = async (request: RpcRequest<unknown>) => {
         const { method, params } = request
@@ -47,11 +48,11 @@ export default function Home() {
         return [await future.promise] as const
       }
 
-      parentRouter.handlers.set("kv_ask", onRequest)
-      parentRouter.handlers.set("webauthn_storage_create", onRequest)
-      parentRouter.handlers.set("webauthn_storage_get", onRequest)
+      router.handlers.set("kv_ask", onRequest)
+      router.handlers.set("webauthn_storage_create", onRequest)
+      router.handlers.set("webauthn_storage_get", onRequest)
 
-      await parentRouter.helloOrThrow(AbortSignal.timeout(1000))
+      await router.helloOrThrow(AbortSignal.timeout(1000))
 
       return
     }

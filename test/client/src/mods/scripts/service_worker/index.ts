@@ -7,7 +7,7 @@ export { };
 
 declare const self: ServiceWorkerGlobalScope
 
-let targetRouter: RpcRouter
+let target: RpcRouter
 
 self.addEventListener("install", (event) => {
   event.waitUntil(self.skipWaiting())
@@ -30,23 +30,23 @@ self.addEventListener("message", async (event) => {
   }
 
   if (message.method === "connect") {
-    const [pagePort] = event.ports
+    const [port] = event.ports
 
-    if (pagePort == null)
+    if (port == null)
       return
 
-    const pageRouter = new RpcRouter(pagePort)
+    const router = new RpcRouter(port)
 
-    pageRouter.handlers.set("proxy", async (request: RpcRequestPreinit, transferables: Transferable[]) => {
+    router.handlers.set("proxy", async (request: RpcRequestPreinit, transferables: Transferable[]) => {
       const [subrequest] = request.params as [RpcRequestPreinit]
 
-      if (targetRouter == null)
+      if (target == null)
         throw new Error(`Not connected`)
 
-      return await targetRouter.requestOrThrow(subrequest, transferables, AbortSignal.timeout(1000)).then(([r, t]) => [r.unwrap(), t])
+      return await target.requestOrThrow(subrequest, transferables, AbortSignal.timeout(1000)).then(([r, t]) => [r.unwrap(), t])
     })
 
-    await pageRouter.helloOrThrow(AbortSignal.timeout(1000))
+    await router.helloOrThrow(AbortSignal.timeout(1000))
 
     return
   }
@@ -57,16 +57,17 @@ self.addEventListener("message", async (event) => {
     if (origin == null)
       return
 
-    const [originPort] = event.ports
+    const [port] = event.ports
 
-    if (originPort == null)
+    if (port == null)
       return
 
-    const originRouter = new RpcRouter(originPort)
+    const router = new RpcRouter(port)
 
-    await originRouter.helloOrThrow(AbortSignal.timeout(1000))
+    await router.helloOrThrow(AbortSignal.timeout(1000))
 
-    targetRouter = originRouter
+    target = router
+
     return
   }
 })
