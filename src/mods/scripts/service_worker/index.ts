@@ -47,9 +47,9 @@ async function uncache(request: Request) {
   return fetched
 }
 
-self.addEventListener("fetch", (event) => {
-  event.respondWith(uncache(event.request))
-})
+// self.addEventListener("fetch", (event) => {
+//   event.respondWith(uncache(event.request))
+// })
 
 self.addEventListener("message", async (event) => {
   if (event.origin !== location.origin)
