@@ -116,7 +116,7 @@ async function compileAndHash(name, config, options) {
   const content = fs.readFileSync(`./.webpack/${config.output.filename}`)
   const hash = crypto.createHash("sha256").update(content).digest("hex")
 
-  fs.copyFileSync(`./.webpack/${config.output.filename}`, `./public/${path.dirname(config.output.filename)}/${hash}.h.js`)
+  fs.copyFileSync(`./.webpack/${config.output.filename}`, `./public/${path.dirname(config.output.filename)}/${path.basename(config.output.filename, ".js")}.${hash}.h.js`)
 }
 
 /**

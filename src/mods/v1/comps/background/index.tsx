@@ -143,7 +143,7 @@ export namespace StickyServiceWorker {
 
     const currentHashRawHex = JsonLocalStorage.getOrSet("service_worker.current.hashRawHex", latestHashRawHex)
 
-    await navigator.serviceWorker.register(`${path}${currentHashRawHex}.h.js`, { updateViaCache: "all" })
+    await navigator.serviceWorker.register(`${path}service_worker.${currentHashRawHex}.h.js`, { updateViaCache: "all" })
 
     /**
      * No update found
@@ -181,7 +181,7 @@ export namespace StickyServiceWorker {
         future.resolve()
       })
 
-      await navigator.serviceWorker.register(`${path}${latestHashRawHex}.h.js`, { updateViaCache: "all" })
+      await navigator.serviceWorker.register(`${path}service_worker.${latestHashRawHex}.h.js`, { updateViaCache: "all" })
       await future.promise
     }
   }

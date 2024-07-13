@@ -18,28 +18,36 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(caches.delete("meta"))
+  event.waitUntil(prefetch())
 })
 
 const filesAndHashes = typeof FILES_AND_HASHES !== "undefined"
   ? new Map(FILES_AND_HASHES)
   : new Map()
 
-async function uncache(request: Request) {
+async function prefetch() {
   if (process.env.NODE_ENV === "development")
-    return fetch(request)
+    return
 
-  const url = new URL(request.url)
+  const promises = new Array<Promise<Response>>()
 
-  if (!url.pathname.split("/").at(-1)!.includes("."))
-    url.pathname += ".html"
+  for (const [file, hash] of filesAndHashes) {
+    const url = new URL(file, location.origin)
 
-  if (!filesAndHashes.has(url.pathname))
-    return fetch(request)
+    if (!url.pathname.split("/").at(-1)!.includes("."))
+      url.pathname += ".html"
 
+    promises.push(unfetch(new Request(url), hash))
+  }
+
+  await Promise.all(promises)
+}
+
+async function unfetch(request: Request, hash: string) {
   const cache = await caches.open("meta")
 
   /**
-   * Check if already cached
+   * Check cache if not force reloaded
    */
   if (request.cache !== "reload") {
     const cached = await cache.match(request)
@@ -53,7 +61,7 @@ async function uncache(request: Request) {
   }
 
   /**
-   * Fetch but get a fresh version
+   * Fetch but force reload
    */
   const fetched = await fetch(request, { cache: "reload" })
 
@@ -66,7 +74,7 @@ async function uncache(request: Request) {
   const hashBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", await fetched.clone().arrayBuffer()))
   const hashRawHex = Array.from(hashBytes).map(b => b.toString(16).padStart(2, "0")).join("")
 
-  if (hashRawHex !== filesAndHashes.get(url.pathname))
+  if (hashRawHex !== hash)
     throw new Error("Invalid hash")
 
   cache.put(request, fetched.clone())
@@ -75,7 +83,69 @@ async function uncache(request: Request) {
 }
 
 self.addEventListener("fetch", (event) => {
-  event.respondWith(uncache(event.request))
+  if (process.env.NODE_ENV === "development")
+    return
+
+  const url = new URL(event.request.url)
+
+  /**
+   * Match exact
+   */
+  if (filesAndHashes.has(url.pathname)) {
+    const hash = filesAndHashes.get(url.pathname)
+
+    event.respondWith(unfetch(event.request, hash))
+
+    return
+  }
+
+  /**
+   * Directory
+   */
+  if (!url.pathname.split("/").at(-1)!.includes(".")) {
+    /**
+     * Match .html
+     */
+    {
+      const url = new URL(event.request.url)
+
+      url.pathname += ".html"
+
+      if (filesAndHashes.has(url.pathname)) {
+        const hash = filesAndHashes.get(url.pathname)
+
+        const request = new Request(url, event.request)
+
+        event.respondWith(unfetch(request, hash))
+
+        return
+      }
+    }
+
+    /**
+     * Match /index.html
+     */
+    {
+      const url = new URL(event.request.url)
+
+      url.pathname += "/index.html"
+
+      if (filesAndHashes.has(url.pathname)) {
+        const hash = filesAndHashes.get(url.pathname)
+
+        const request = new Request(url, event.request)
+
+        event.respondWith(unfetch(request, hash))
+
+        return
+      }
+    }
+  }
+
+  /**
+   * Not found
+   */
+  return
 })
 
 self.addEventListener("message", async (event) => {

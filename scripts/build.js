@@ -17,7 +17,9 @@ function* walkSync(dir) {
 const filesAndHashes = new Array()
 
 for (const absolute of walkSync("./out")) {
-  if (absolute.endsWith("service_worker.js"))
+  const filename = path.basename(absolute)
+
+  if (filename.startsWith("service_worker"))
     continue
 
   const text = fs.readFileSync(absolute)
@@ -31,9 +33,11 @@ for (const absolute of walkSync("./out")) {
 const manifest = JSON.stringify(filesAndHashes)
 
 for (const absolute of walkSync("./out")) {
-  if (absolute.endsWith("service_worker.js"))
+  const filename = path.basename(absolute)
+
+  if (!filename.endsWith(".js"))
     continue
-  if (!absolute.endsWith(".js"))
+  if (filename === "service_worker.js")
     continue
 
   const original = fs.readFileSync(absolute, "utf8")
