@@ -1,10 +1,10 @@
 import { Nullable } from "@hazae41/option"
 
+declare const FILES_AND_HASHES: Nullable<[string, string][]>
+
 export namespace Immutable {
 
-  declare const FILES_AND_HASHES: Nullable<[string, string][]>
-
-  const filesAndHashes = typeof FILES_AND_HASHES !== "undefined"
+  export const files = typeof FILES_AND_HASHES !== "undefined"
     ? new Map(FILES_AND_HASHES)
     : new Map()
 
@@ -25,14 +25,8 @@ export namespace Immutable {
 
     const promises = new Array<Promise<Response>>()
 
-    for (const [file, hash] of filesAndHashes) {
-      const url = new URL(file, location.origin)
-
-      if (!url.pathname.split("/").at(-1)!.includes("."))
-        url.pathname += ".html"
-
-      promises.push(defetch(new Request(url), hash))
-    }
+    for (const [file, hash] of files)
+      promises.push(defetch(new Request(file), hash))
 
     await Promise.all(promises)
   }
@@ -96,11 +90,14 @@ export namespace Immutable {
     /**
      * Match exact
      */
-    if (filesAndHashes.has(url.pathname)) {
-      const hash = filesAndHashes.get(url.pathname)
+    if (files.has(url.pathname)) {
+      const hash = files.get(url.pathname)
 
       event.respondWith(defetch(event.request, hash))
 
+      /**
+       * Found
+       */
       return
     }
 
@@ -121,13 +118,16 @@ export namespace Immutable {
 
       url.pathname += ".html"
 
-      if (filesAndHashes.has(url.pathname)) {
-        const hash = filesAndHashes.get(url.pathname)
+      if (files.has(url.pathname)) {
+        const hash = files.get(url.pathname)
 
         const request = new Request(url, event.request)
 
         event.respondWith(defetch(request, hash))
 
+        /**
+         * Found
+         */
         return
       }
     }
@@ -140,13 +140,16 @@ export namespace Immutable {
 
       url.pathname += "/index.html"
 
-      if (filesAndHashes.has(url.pathname)) {
-        const hash = filesAndHashes.get(url.pathname)
+      if (files.has(url.pathname)) {
+        const hash = files.get(url.pathname)
 
         const request = new Request(url, event.request)
 
         event.respondWith(defetch(request, hash))
 
+        /**
+         * Found
+         */
         return
       }
     }
