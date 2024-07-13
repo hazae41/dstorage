@@ -4,53 +4,79 @@ import { RequestLike, ResponseLike, TransferableResponse } from "@/libs/http";
 import { RpcRouter } from "@/libs/jsonrpc";
 import { Kv } from "@/libs/storage";
 import { RpcRequestPreinit } from "@hazae41/jsonrpc";
+import { Nullable } from "@hazae41/option";
 
 export { };
 
 declare const self: ServiceWorkerGlobalScope
 
-// declare const FILES_AND_HASHES: [string, string][]
+declare const FILES_AND_HASHES: Nullable<[string, string][]>
 
 self.addEventListener("install", (event) => {
   self.skipWaiting()
 })
 
-// self.addEventListener("activate", (event) => {
-//   event.waitUntil(caches.delete("meta"))
-// })
+self.addEventListener("activate", (event) => {
+  event.waitUntil(caches.delete("meta"))
+})
 
-// const filesAndHashes = new Map(FILES_AND_HASHES)
+const filesAndHashes = typeof FILES_AND_HASHES !== "undefined"
+  ? new Map(FILES_AND_HASHES)
+  : new Map()
 
-// async function uncache(request: Request) {
-//   const cache = await caches.open("meta")
-//   const cached = await cache.match(request)
+async function uncache(request: Request) {
+  if (process.env.NODE_ENV === "development")
+    return fetch(request)
 
-//   if (cached != null)
-//     return cached
+  const url = new URL(request.url)
 
-//   const url = new URL(request.url)
+  if (!url.pathname.split("/").at(-1)!.includes("."))
+    url.pathname += ".html"
 
-//   if (!filesAndHashes.has(url.pathname))
-//     throw new Error("Invalid path")
+  if (!filesAndHashes.has(url.pathname))
+    return fetch(request)
 
-//   const fetched = await fetch(request)
-//   const cloned = fetched.clone()
-//   const bytes = await cloned.arrayBuffer()
+  const cache = await caches.open("meta")
 
-//   const hashBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))
-//   const hashRawHex = Array.from(hashBytes).map(b => b.toString(16).padStart(2, "0")).join("")
+  /**
+   * Check if already cached
+   */
+  if (request.cache !== "reload") {
+    const cached = await cache.match(request)
 
-//   if (hashRawHex !== filesAndHashes.get(url.pathname))
-//     throw new Error("Invalid hash")
+    if (cached != null)
+      return cached
 
-//   cache.put(request, fetched.clone())
+    /**
+     * Not found in cache
+     */
+  }
 
-//   return fetched
-// }
+  /**
+   * Fetch but get a fresh version
+   */
+  const fetched = await fetch(request, { cache: "reload" })
 
-// self.addEventListener("fetch", (event) => {
-//   event.respondWith(uncache(event.request))
-// })
+  /**
+   * Errors are not verified nor cached
+   */
+  if (!fetched.ok)
+    return fetched
+
+  const hashBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", await fetched.clone().arrayBuffer()))
+  const hashRawHex = Array.from(hashBytes).map(b => b.toString(16).padStart(2, "0")).join("")
+
+  if (hashRawHex !== filesAndHashes.get(url.pathname))
+    throw new Error("Invalid hash")
+
+  cache.put(request, fetched.clone())
+
+  return fetched
+}
+
+self.addEventListener("fetch", (event) => {
+  event.respondWith(uncache(event.request))
+})
 
 self.addEventListener("message", async (event) => {
   if (event.origin !== location.origin)
