@@ -2,6 +2,7 @@ import "@hazae41/symbol-dispose-polyfill";
 
 import { RequestLike, ResponseLike, TransferableResponse } from "@/libs/http";
 import { RpcRouter } from "@/libs/jsonrpc";
+import { Kv } from "@/libs/storage";
 import { RpcRequestPreinit } from "@hazae41/jsonrpc";
 
 export { };
@@ -76,36 +77,6 @@ self.addEventListener("message", async (event) => {
 
     router.handlers.set("sw_size", async () => [await self.clients.matchAll().then(r => r.length)])
 
-    router.handlers.set("kv_ask", async (request) => {
-      const [scope, origin, capacity] = request.params as [string, string, number]
-
-      if (scope === "meta")
-        throw new Error("Not allowed")
-
-      const cache = await caches.open(scope)
-
-      const allowedUrl = new URL("/allowed", "http://meta")
-      allowedUrl.searchParams.set("origin", origin)
-      const allowedReq = new Request(allowedUrl)
-      const allowedRes = new Response()
-
-      await cache.put(allowedReq, allowedRes)
-
-      const capacityUrl = new URL("/capacity", "http://meta")
-      const capacityReq = new Request(capacityUrl)
-
-      const oldCapacityRes = await cache.match(capacityReq)
-      const oldCapacityNum = oldCapacityRes == null ? 0 : await oldCapacityRes.json() as number
-
-      const newCapacityNum = capacity
-      const newCapacityRes = new Response(JSON.stringify(newCapacityNum))
-
-      if (newCapacityNum > oldCapacityNum)
-        await cache.put(capacityReq, newCapacityRes)
-
-      return [] as const
-    })
-
     await router.helloOrThrow(AbortSignal.timeout(1000))
 
     return
@@ -128,105 +99,37 @@ self.addEventListener("message", async (event) => {
     if (origin !== location.origin) {
       const router = new RpcRouter(port)
 
-      router.handlers.set("kv_ask", async (request) => {
-        const [scope] = request.params as [string]
+      router.handlers.set("kv_ask", async (rpcreq) => {
+        const [scope] = rpcreq.params as [string]
 
-        if (scope === "meta")
-          throw new Error("Not allowed")
-
-        const cache = await caches.open(scope)
-
-        const allowedUrl = new URL("/allowed", "http://meta")
-        allowedUrl.searchParams.set("origin", origin)
-        const allowedReq = new Request(allowedUrl)
-        const allowedRes = await cache.match(allowedReq)
-
-        if (allowedRes == null)
-          throw new Error("Not allowed")
+        await Kv.ask(origin, scope)
 
         return []
       })
 
-      router.handlers.set("kv_set", async (request) => {
-        const [scope, req, res] = request.params as [string, RequestLike, ResponseLike]
+      router.handlers.set("kv_set", async (rpcreq) => {
+        const [scope, reqlike, reslike] = rpcreq.params as [string, RequestLike, ResponseLike]
 
-        if (scope === "meta")
-          throw new Error("Not allowed")
+        const request = new Request(reqlike.url, reqlike)
+        const response = new Response(reslike.body, reslike)
 
-        const cache = await caches.open(scope)
-
-        const valueReq = new Request(req.url, req)
-        const valueUrl = new URL(valueReq.url)
-
-        if (valueUrl.origin === "http://meta")
-          throw new Error("Not allowed")
-
-        const allowedUrl = new URL("/allowed", "http://meta")
-        allowedUrl.searchParams.set("origin", origin)
-        const allowedReq = new Request(allowedUrl)
-        const allowedRes = await cache.match(allowedReq)
-
-        if (allowedRes == null)
-          throw new Error("Not allowed")
-
-        const oldValueRes = await cache.match(valueReq)
-        const oldValueSize = oldValueRes == null ? 0 : await oldValueRes.arrayBuffer().then(r => r.byteLength)
-
-        const newValueRes = new Response(res.body, res)
-        const newValueSize = await newValueRes.clone().arrayBuffer().then(r => r.byteLength)
-
-        const sizeUrl = new URL("/size", "http://meta")
-        const sizeReq = new Request(sizeUrl)
-
-        const oldSizeRes = await cache.match(sizeReq)
-        const oldSizeNum = oldSizeRes == null ? 0 : await oldSizeRes.json() as number
-
-        const newSizeNum = oldSizeNum - oldValueSize + newValueSize
-
-        const capacityUrl = new URL("/capacity", "http://meta")
-        const capacityReq = new Request(capacityUrl)
-        const capacityRes = await cache.match(capacityReq)
-        const capacityNum = capacityRes == null ? 0 : await capacityRes.json() as number
-
-        if (newSizeNum > capacityNum)
-          throw new Error("Too big")
-
-        await cache.put(valueReq, newValueRes)
-        await cache.put(sizeReq, new Response(JSON.stringify(newSizeNum)))
+        await Kv.set(origin, scope, request, response)
 
         return []
       })
 
-      router.handlers.set("kv_get", async (request) => {
-        const [scope, req] = request.params as [string, RequestLike]
+      router.handlers.set("kv_get", async (rpcreq) => {
+        const [scope, reqlike] = rpcreq.params as [string, RequestLike]
 
-        if (scope === "meta")
-          throw new Error("Not allowed")
+        const request = new Request(reqlike.url, reqlike)
+        const response = await Kv.get(origin, scope, request)
 
-        const cache = await caches.open(scope)
-
-        const valueReq = new Request(req.url, req)
-        const valueUrl = new URL(valueReq.url)
-
-        if (valueUrl.origin === "http://meta")
-          throw new Error("Not allowed")
-
-        const allowedUrl = new URL("/allowed", "http://meta")
-        allowedUrl.searchParams.set("origin", origin)
-        const allowedReq = new Request(allowedUrl)
-        const allowedRes = await cache.match(allowedReq)
-
-        if (allowedRes == null)
-          throw new Error("Not allowed")
-
-        const valueRes = await cache.match(valueReq)
-
-        if (valueRes == null)
+        if (response == null)
           return []
 
-        const transValueRes = TransferableResponse.from(valueRes)
+        const reslike = TransferableResponse.from(response)
 
-        return [transValueRes.toJSON(), transValueRes.transferables]
+        return [reslike.toJSON(), reslike.transferables]
       })
 
       await router.helloOrThrow(AbortSignal.timeout(1000))

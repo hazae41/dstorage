@@ -1,7 +1,7 @@
 import "@hazae41/symbol-dispose-polyfill";
 
 import { RpcRouter } from "@/libs/jsonrpc";
-import { useBackgroundContext } from "@/mods/comps/background";
+import { Kv } from "@/libs/storage";
 import { Future } from "@hazae41/future";
 import { RpcRequest, RpcRequestPreinit } from "@hazae41/jsonrpc";
 import { WebAuthnStorage } from "@hazae41/webauthnstorage";
@@ -87,21 +87,17 @@ export function Router(props: {
 export function KvAsk(props: {
   readonly message: Message
 }) {
-  const background = useBackgroundContext()
   const { message } = props
   const { origin, params, future } = message
   const [scope, capacity] = params as [string, number]
 
   const onAllow = useCallback(async () => {
-    await background.router.requestOrThrow<void>({
-      method: "kv_ask",
-      params: [scope, origin, capacity]
-    }, [], AbortSignal.timeout(1000)).then(([r]) => r.unwrap())
+    await Kv.allow(origin, scope, capacity)
 
     future.resolve(undefined)
 
     close()
-  }, [background, scope, origin, capacity, future])
+  }, [scope, origin, capacity, future])
 
   const onReject = useCallback(async () => {
     future.reject(new Error(`User rejected`))
