@@ -41,7 +41,7 @@ export function Subpage() {
       if (clients.length > 1)
         close()
 
-      location.assign("/keepalive")
+      location.assign("/v1/keepalive")
       return
     }
   }, [background])
