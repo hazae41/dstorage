@@ -6,7 +6,7 @@ import { WindowMessenger } from "@/libs/messenger";
 import { useBackgroundContext } from "@/mods/comps/background";
 import { useCallback, useEffect, useState } from "react";
 
-const TARGET = new URL("https://cheaper-cuba-delivery-count.trycloudflare.com")
+const TARGET = new URL("https://cheaper-cuba-delivery-count.trycloudflare.com/v1")
 
 export default function Home() {
   const background = useBackgroundContext()
@@ -37,7 +37,7 @@ export default function Home() {
   }, [pingOrThrow])
 
   const connectOrThrow = useCallback(async () => {
-    const window = open(`${TARGET.origin}/connect`, "_blank", "width=100,height=100")
+    const window = open(`${TARGET.href}/connect`, "_blank", "width=100,height=100")
 
     if (window == null)
       return
@@ -56,7 +56,7 @@ export default function Home() {
 
   const onAskClick = useCallback(async () => {
     try {
-      const window = open(`${TARGET.origin}/request`, "_blank")
+      const window = open(`${TARGET}/request`, "_blank")
 
       if (window == null)
         return
@@ -124,7 +124,7 @@ export default function Home() {
 
   const onWebAuthnCreateClick = useCallback(async () => {
     try {
-      const window = open(`${TARGET.origin}/request`, "_blank")
+      const window = open(`${TARGET}/request`, "_blank")
 
       if (window == null)
         return
@@ -157,7 +157,7 @@ export default function Home() {
 
   const onWebAuthnGetClick = useCallback(async () => {
     try {
-      const window = open(`${TARGET.origin}/request`, "_blank")
+      const window = open(`${TARGET}/request`, "_blank")
 
       if (window == null)
         return

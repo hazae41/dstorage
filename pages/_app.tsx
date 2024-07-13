@@ -1,4 +1,3 @@
-import { BackgroundProvider } from "@/mods/comps/background";
 import "@/mods/styles/globals.css";
 
 import type { AppProps } from "next/app";
@@ -10,9 +9,7 @@ export default function App({ Component, pageProps }: AppProps) {
       <title>Next.js with TypeScript example</title>
       <link rel="manifest" href="/manifest.json" />
     </Head>
-    <BackgroundProvider>
-      <Component {...pageProps} />
-    </BackgroundProvider>
+    <Component {...pageProps} />
   </>
 }
 

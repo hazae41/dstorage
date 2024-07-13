@@ -1,10 +1,17 @@
 import "@hazae41/symbol-dispose-polyfill";
 
-import { useBackgroundContext } from "@/mods/comps/background";
+import { Layout } from "@/mods/v1/comps/app";
+import { useBackgroundContext } from "@/mods/v1/comps/background";
 import { RpcRequestPreinit } from "@hazae41/jsonrpc";
 import { useCallback, useEffect } from "react";
 
-export default function Home() {
+export default function Page() {
+  return <Layout>
+    <Subpage />
+  </Layout>
+}
+
+export function Subpage() {
   const background = useBackgroundContext()
 
   const onMessage = useCallback(async (event: MessageEvent) => {

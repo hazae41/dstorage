@@ -7,7 +7,7 @@ import { useBackgroundContext } from "@/mods/comps/background";
 import { Nullable } from "@hazae41/option";
 import { useCallback, useEffect, useState } from "react";
 
-const TARGET = new URL("https://cheaper-cuba-delivery-count.trycloudflare.com")
+const TARGET = new URL("https://cheaper-cuba-delivery-count.trycloudflare.com/v1")
 
 export default function Home() {
   const background = useBackgroundContext()
@@ -59,7 +59,7 @@ export default function Home() {
 
   const onAskClick = useCallback(async () => {
     try {
-      const window = open(`${TARGET.origin}/request`, "_blank")
+      const window = open(`${TARGET}/request`, "_blank")
 
       if (window == null)
         return
@@ -127,7 +127,7 @@ export default function Home() {
 
   const onWebAuthnCreateClick = useCallback(async () => {
     try {
-      const window = open(`${TARGET.origin}/request`, "_blank")
+      const window = open(`${TARGET}/request`, "_blank")
 
       if (window == null)
         return
@@ -160,7 +160,7 @@ export default function Home() {
 
   const onWebAuthnGetClick = useCallback(async () => {
     try {
-      const window = open(`${TARGET.origin}/request`, "_blank")
+      const window = open(`${TARGET}/request`, "_blank")
 
       if (window == null)
         return
@@ -192,7 +192,7 @@ export default function Home() {
   return <main className="">
     <iframe className="w-full h-96"
       ref={setIframe}
-      src={`${TARGET.origin}/iframe`} />
+      src={`${TARGET}/iframe`} />
     {background.update != null &&
       <button className="w-full"
         onClick={background.update}>

@@ -1,10 +1,17 @@
 import { RequestLike, ResponseLike, TransferableResponse } from "@/libs/http"
 import { RpcRouter } from "@/libs/jsonrpc"
 import { Kv } from "@/libs/storage"
+import { Layout } from "@/mods/v1/comps/app"
 import { RpcRequestPreinit } from "@hazae41/jsonrpc"
 import { useCallback, useEffect, useState } from "react"
 
 export default function Page() {
+  return <Layout>
+    <Subpage />
+  </Layout>
+}
+
+export function Subpage() {
   const [handle, setHandle] = useState<any>()
 
   const onMessage = useCallback(async (event: MessageEvent) => {
