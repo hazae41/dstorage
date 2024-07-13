@@ -1,9 +1,21 @@
 const webpack = require("webpack")
-const { copyFileSync, rmSync, readFileSync, readdir, readdirSync } = require("fs")
+const fs = require("fs")
 const TerserPlugin = require("terser-webpack-plugin")
 const Log = require("next/dist/build/output/log")
 const path = require("path")
-const { createHash } = require("crypto")
+const crypto = require("crypto")
+
+function* walkSync(dir) {
+  const files = fs.readdirSync(dir, { withFileTypes: true })
+
+  for (const file of files) {
+    if (file.isDirectory()) {
+      yield* walkSync(path.join(dir, file.name))
+    } else {
+      yield path.join(dir, file.name)
+    }
+  }
+}
 
 /**
  * @type {Promise<void> | undefined}
@@ -25,11 +37,11 @@ const nextConfig = {
     if (options.isServer)
       return config
 
-    rmSync("./.webpack", { force: true, recursive: true })
+    fs.rmSync("./.webpack", { force: true, recursive: true })
 
-    for (const file of readdirSync("./public"))
+    for (const file of walkSync("./public"))
       if (file.endsWith(".h.js"))
-        rmSync(`./public/${file}`, { force: true })
+        fs.rmSync(`./public/${file}`, { force: true })
 
     promise = Promise.all([
       compileServiceWorker(config, options)
@@ -75,7 +87,8 @@ async function compile(name, config, options) {
   }
 
   Log.ready(`compiled ${name} in ${Date.now() - start} ms`)
-  copyFileSync(`./.webpack/${config.output.filename}`, `./public/${config.output.filename}`)
+
+  fs.copyFileSync(`./.webpack/${config.output.filename}`, `./public/${config.output.filename}`)
 }
 
 /**
@@ -95,12 +108,15 @@ async function compileAndHash(name, config, options) {
   }
 
   Log.ready(`compiled ${name} in ${Date.now() - start} ms`)
-  copyFileSync(`./.webpack/${config.output.filename}`, `./public/${config.output.filename}`)
 
-  const content = readFileSync(`./.webpack/${config.output.filename}`)
-  const hash = createHash("sha256").update(content).digest("hex")
+  fs.mkdirSync(`./public/${path.dirname(config.output.filename)}`, { recursive: true })
 
-  copyFileSync(`./.webpack/${config.output.filename}`, `./public/${hash}.h.js`)
+  fs.copyFileSync(`./.webpack/${config.output.filename}`, `./public/${config.output.filename}`)
+
+  const content = fs.readFileSync(`./.webpack/${config.output.filename}`)
+  const hash = crypto.createHash("sha256").update(content).digest("hex")
+
+  fs.copyFileSync(`./.webpack/${config.output.filename}`, `./public/${path.dirname(config.output.filename)}/${hash}.h.js`)
 }
 
 /**
