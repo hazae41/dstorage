@@ -1,7 +1,7 @@
 import "@hazae41/symbol-dispose-polyfill";
 
-import { Immutable } from "@/libs/fetch";
 import { RequestLike, ResponseLike, TransferableResponse } from "@/libs/http";
+import { Immutable } from "@/libs/immutable";
 import { RpcRouter } from "@/libs/jsonrpc";
 import { Kv } from "@/libs/storage";
 import { RpcRequestPreinit } from "@hazae41/jsonrpc";
