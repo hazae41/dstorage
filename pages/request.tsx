@@ -92,7 +92,7 @@ export function KvAsk(props: {
   const [scope, capacity] = params as [string, number]
 
   const onAllow = useCallback(async () => {
-    await Kv.allow(origin, scope, capacity)
+    await Kv.allow(caches, origin, scope, capacity)
 
     future.resolve(undefined)
 

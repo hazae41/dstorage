@@ -9,44 +9,44 @@ export { };
 
 declare const self: ServiceWorkerGlobalScope
 
-declare const FILES_AND_HASHES: [string, string][]
+// declare const FILES_AND_HASHES: [string, string][]
 
 self.addEventListener("install", (event) => {
   self.skipWaiting()
 })
 
-self.addEventListener("activate", (event) => {
-  event.waitUntil(caches.delete("meta"))
-})
+// self.addEventListener("activate", (event) => {
+//   event.waitUntil(caches.delete("meta"))
+// })
 
-const filesAndHashes = new Map(FILES_AND_HASHES)
+// const filesAndHashes = new Map(FILES_AND_HASHES)
 
-async function uncache(request: Request) {
-  const cache = await caches.open("meta")
-  const cached = await cache.match(request)
+// async function uncache(request: Request) {
+//   const cache = await caches.open("meta")
+//   const cached = await cache.match(request)
 
-  if (cached != null)
-    return cached
+//   if (cached != null)
+//     return cached
 
-  const url = new URL(request.url)
+//   const url = new URL(request.url)
 
-  if (!filesAndHashes.has(url.pathname))
-    throw new Error("Invalid path")
+//   if (!filesAndHashes.has(url.pathname))
+//     throw new Error("Invalid path")
 
-  const fetched = await fetch(request)
-  const cloned = fetched.clone()
-  const bytes = await cloned.arrayBuffer()
+//   const fetched = await fetch(request)
+//   const cloned = fetched.clone()
+//   const bytes = await cloned.arrayBuffer()
 
-  const hashBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))
-  const hashRawHex = Array.from(hashBytes).map(b => b.toString(16).padStart(2, "0")).join("")
+//   const hashBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))
+//   const hashRawHex = Array.from(hashBytes).map(b => b.toString(16).padStart(2, "0")).join("")
 
-  if (hashRawHex !== filesAndHashes.get(url.pathname))
-    throw new Error("Invalid hash")
+//   if (hashRawHex !== filesAndHashes.get(url.pathname))
+//     throw new Error("Invalid hash")
 
-  cache.put(request, fetched.clone())
+//   cache.put(request, fetched.clone())
 
-  return fetched
-}
+//   return fetched
+// }
 
 // self.addEventListener("fetch", (event) => {
 //   event.respondWith(uncache(event.request))
@@ -75,7 +75,12 @@ self.addEventListener("message", async (event) => {
 
     const router = new RpcRouter(port)
 
-    router.handlers.set("sw_size", async () => [await self.clients.matchAll().then(r => r.length)])
+    router.handlers.set("sw_clients", async () => {
+      const clients = await self.clients.matchAll()
+      const clients2 = clients.map(({ id, type, url, frameType }) => ({ id, type, url, frameType }))
+
+      return [clients2]
+    })
 
     await router.helloOrThrow(AbortSignal.timeout(1000))
 
@@ -102,7 +107,7 @@ self.addEventListener("message", async (event) => {
       router.handlers.set("kv_ask", async (rpcreq) => {
         const [scope] = rpcreq.params as [string]
 
-        await Kv.ask(origin, scope)
+        await Kv.ask(caches, origin, scope)
 
         return []
       })
@@ -113,7 +118,7 @@ self.addEventListener("message", async (event) => {
         const request = new Request(reqlike.url, reqlike)
         const response = new Response(reslike.body, reslike)
 
-        await Kv.set(origin, scope, request, response)
+        await Kv.set(caches, origin, scope, request, response)
 
         return []
       })
@@ -122,7 +127,7 @@ self.addEventListener("message", async (event) => {
         const [scope, reqlike] = rpcreq.params as [string, RequestLike]
 
         const request = new Request(reqlike.url, reqlike)
-        const response = await Kv.get(origin, scope, request)
+        const response = await Kv.get(caches, origin, scope, request)
 
         if (response == null)
           return []
@@ -138,5 +143,3 @@ self.addEventListener("message", async (event) => {
     }
   }
 })
-
-console.log(15)

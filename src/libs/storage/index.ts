@@ -1,6 +1,6 @@
 export namespace Kv {
 
-  export async function ask(origin: string, scope: string) {
+  export async function ask(caches: CacheStorage, origin: string, scope: string) {
     if (scope === "meta")
       throw new Error("Not allowed")
 
@@ -17,7 +17,7 @@ export namespace Kv {
     return
   }
 
-  export async function allow(origin: string, scope: string, capacity: number) {
+  export async function allow(caches: CacheStorage, origin: string, scope: string, capacity: number) {
     if (scope === "meta")
       throw new Error("Not allowed")
 
@@ -45,7 +45,7 @@ export namespace Kv {
     return
   }
 
-  export async function get(origin: string, scope: string, request: Request) {
+  export async function get(caches: CacheStorage, origin: string, scope: string, request: Request) {
     if (scope === "meta")
       throw new Error("Not allowed")
 
@@ -73,7 +73,7 @@ export namespace Kv {
     return valueRes
   }
 
-  export async function set(origin: string, scope: string, request: Request, response: Response) {
+  export async function set(caches: CacheStorage, origin: string, scope: string, request: Request, response: Response) {
     if (scope === "meta")
       throw new Error("Not allowed")
 

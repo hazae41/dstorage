@@ -2,12 +2,13 @@ import "@hazae41/symbol-dispose-polyfill";
 
 import { RpcRouter } from "@/libs/jsonrpc";
 import { RpcRequestPreinit } from "@hazae41/jsonrpc";
+import { Nullable } from "@hazae41/option";
 
 export { };
 
 declare const self: ServiceWorkerGlobalScope
 
-let target: RpcRouter
+let target: Nullable<RpcRouter> = undefined
 
 self.addEventListener("install", (event) => {
   self.skipWaiting()
@@ -63,6 +64,12 @@ self.addEventListener("message", async (event) => {
     await router.helloOrThrow(AbortSignal.timeout(1000))
 
     target = router
+
+    target.resolveOnClose.promise.then(() => {
+      if (target !== router)
+        return
+      target = undefined
+    }).catch(() => { })
 
     return
   }

@@ -196,11 +196,19 @@ export function BackgroundProvider(props: {
   const [background, setBackground] = useState<Background>()
 
   const connectOrThrow = useCallback(async () => {
+    navigator.serviceWorker.addEventListener("controllerchange", () => location.reload())
+
     const update = await StickyServiceWorker.register()
 
-    const worker = await navigator.serviceWorker.ready.then(r => r.active)
+    /**
+     * Auto-update for now
+     */
+    if (update != null) {
+      await update()
+      return
+    }
 
-    navigator.serviceWorker.addEventListener("controllerchange", () => location.reload())
+    const worker = await navigator.serviceWorker.ready.then(r => r.active)
 
     if (worker == null)
       return

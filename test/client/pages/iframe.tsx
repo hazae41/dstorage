@@ -4,12 +4,15 @@ import { ResponseLike, TransferableRequest, TransferableResponse } from "@/libs/
 import { RpcRouter } from "@/libs/jsonrpc";
 import { WindowMessenger } from "@/libs/messenger";
 import { useBackgroundContext } from "@/mods/comps/background";
+import { Nullable } from "@hazae41/option";
 import { useCallback, useEffect, useState } from "react";
 
 const TARGET = new URL("https://cheaper-cuba-delivery-count.trycloudflare.com")
 
 export default function Home() {
   const background = useBackgroundContext()
+
+  const [iframe, setIframe] = useState<Nullable<HTMLIFrameElement>>()
 
   const [piped, setPiped] = useState(false)
 
@@ -37,18 +40,18 @@ export default function Home() {
   }, [pingOrThrow])
 
   const connectOrThrow = useCallback(async () => {
-    const window = open(`${TARGET.origin}/connect`, "_blank", "width=100,height=100")
-
-    if (window == null)
+    if (iframe == null)
+      return
+    if (iframe.contentWindow == null)
       return
 
     const channel = new MessageChannel()
 
-    await WindowMessenger.pingOrThrow(window, TARGET.origin)
+    await WindowMessenger.pingOrThrow(iframe.contentWindow, TARGET.origin)
 
-    window.postMessage([{ method: "connect2" }], TARGET.origin, [channel.port1])
+    iframe.contentWindow.postMessage([{ method: "connect" }], TARGET.origin, [channel.port1])
     background.worker.postMessage([{ method: "connect3", params: [TARGET.origin] }], [channel.port2])
-  }, [])
+  }, [background, iframe])
 
   const onConnectClick = useCallback(async () => {
     connectOrThrow()
@@ -187,6 +190,9 @@ export default function Home() {
   }, [getOrThrow])
 
   return <main className="">
+    <iframe className="w-full h-96"
+      ref={setIframe}
+      src={`${TARGET.origin}/iframe`} />
     {background.update != null &&
       <button className="w-full"
         onClick={background.update}>

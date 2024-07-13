@@ -1,6 +1,5 @@
 import "@hazae41/symbol-dispose-polyfill";
 
-import { RpcRouter } from "@/libs/jsonrpc";
 import { useBackgroundContext } from "@/mods/comps/background";
 import { RpcRequestPreinit } from "@hazae41/jsonrpc";
 import { useCallback, useEffect } from "react";
@@ -20,32 +19,6 @@ export default function Home() {
       return
     }
 
-    if (message.method === "connect") {
-      const [port] = event.ports
-
-      if (port == null)
-        return
-
-      const router = new RpcRouter(port)
-
-      router.handlers.set("sw_update_check", () => [background.update != null])
-
-      router.handlers.set("sw_update_allow", async () => {
-        if (background.update == null)
-          return []
-
-        await background.update()
-
-        close()
-
-        return []
-      })
-
-      await router.helloOrThrow(AbortSignal.timeout(1000))
-
-      return
-    }
-
     if (message.method === "connect2") {
       const [port] = event.ports
 
@@ -54,11 +27,11 @@ export default function Home() {
 
       background.worker.postMessage([{ method: "connect3", params: [event.origin] }], [port])
 
-      const size = await background.router.requestOrThrow<number>({
-        method: "sw_size"
+      const clients = await background.router.requestOrThrow<Client[]>({
+        method: "sw_clients"
       }).then(([r]) => r.unwrap())
 
-      if (size > 1)
+      if (clients.length > 1)
         close()
 
       location.assign("/keepalive")
