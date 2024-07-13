@@ -1,6 +1,6 @@
 import "@hazae41/symbol-dispose-polyfill";
 
-import { Cache } from "@/libs/fetch";
+import { Immutable } from "@/libs/fetch";
 import { RequestLike, ResponseLike, TransferableResponse } from "@/libs/http";
 import { RpcRouter } from "@/libs/jsonrpc";
 import { Kv } from "@/libs/storage";
@@ -15,11 +15,11 @@ self.addEventListener("install", (event) => {
 })
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(Cache.uncache())
-  event.waitUntil(Cache.precache())
+  event.waitUntil(Immutable.uncache())
+  event.waitUntil(Immutable.precache())
 })
 
-self.addEventListener("fetch", (event) => Cache.handle(event))
+self.addEventListener("fetch", (event) => Immutable.handle(event))
 
 self.addEventListener("message", async (event) => {
   if (event.origin !== location.origin)

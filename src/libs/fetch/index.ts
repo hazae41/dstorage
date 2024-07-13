@@ -1,6 +1,6 @@
 import { Nullable } from "@hazae41/option"
 
-export namespace Cache {
+export namespace Immutable {
 
   declare const FILES_AND_HASHES: Nullable<[string, string][]>
 
@@ -105,45 +105,49 @@ export namespace Cache {
     }
 
     /**
-     * Directory
+     * Not a directory
      */
-    if (!url.pathname.split("/").at(-1)!.includes(".")) {
+    if (url.pathname.split("/").at(-1)!.includes("."))
       /**
-       * Match .html
+       * Not found
        */
-      {
-        const url = new URL(event.request.url)
+      return
 
-        url.pathname += ".html"
+    /**
+     * Match .html
+     */
+    {
+      const url = new URL(event.request.url)
 
-        if (filesAndHashes.has(url.pathname)) {
-          const hash = filesAndHashes.get(url.pathname)
+      url.pathname += ".html"
 
-          const request = new Request(url, event.request)
+      if (filesAndHashes.has(url.pathname)) {
+        const hash = filesAndHashes.get(url.pathname)
 
-          event.respondWith(defetch(request, hash))
+        const request = new Request(url, event.request)
 
-          return
-        }
+        event.respondWith(defetch(request, hash))
+
+        return
       }
+    }
 
-      /**
-       * Match /index.html
-       */
-      {
-        const url = new URL(event.request.url)
+    /**
+     * Match /index.html
+     */
+    {
+      const url = new URL(event.request.url)
 
-        url.pathname += "/index.html"
+      url.pathname += "/index.html"
 
-        if (filesAndHashes.has(url.pathname)) {
-          const hash = filesAndHashes.get(url.pathname)
+      if (filesAndHashes.has(url.pathname)) {
+        const hash = filesAndHashes.get(url.pathname)
 
-          const request = new Request(url, event.request)
+        const request = new Request(url, event.request)
 
-          event.respondWith(defetch(request, hash))
+        event.respondWith(defetch(request, hash))
 
-          return
-        }
+        return
       }
     }
 
