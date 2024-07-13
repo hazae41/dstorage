@@ -1,152 +1,25 @@
 import "@hazae41/symbol-dispose-polyfill";
 
+import { Cache } from "@/libs/fetch";
 import { RequestLike, ResponseLike, TransferableResponse } from "@/libs/http";
 import { RpcRouter } from "@/libs/jsonrpc";
 import { Kv } from "@/libs/storage";
 import { RpcRequestPreinit } from "@hazae41/jsonrpc";
-import { Nullable } from "@hazae41/option";
 
 export { };
 
 declare const self: ServiceWorkerGlobalScope
-
-declare const FILES_AND_HASHES: Nullable<[string, string][]>
 
 self.addEventListener("install", (event) => {
   self.skipWaiting()
 })
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(caches.delete("meta"))
-  event.waitUntil(prefetch())
+  event.waitUntil(Cache.uncache())
+  event.waitUntil(Cache.precache())
 })
 
-const filesAndHashes = typeof FILES_AND_HASHES !== "undefined"
-  ? new Map(FILES_AND_HASHES)
-  : new Map()
-
-async function prefetch() {
-  if (process.env.NODE_ENV === "development")
-    return
-
-  const promises = new Array<Promise<Response>>()
-
-  for (const [file, hash] of filesAndHashes) {
-    const url = new URL(file, location.origin)
-
-    if (!url.pathname.split("/").at(-1)!.includes("."))
-      url.pathname += ".html"
-
-    promises.push(unfetch(new Request(url), hash))
-  }
-
-  await Promise.all(promises)
-}
-
-async function unfetch(request: Request, hash: string) {
-  const cache = await caches.open("meta")
-
-  /**
-   * Check cache if not force reloaded
-   */
-  if (request.cache !== "reload") {
-    const cached = await cache.match(request)
-
-    if (cached != null)
-      return cached
-
-    /**
-     * Not found in cache
-     */
-  }
-
-  /**
-   * Fetch but force reload
-   */
-  const fetched = await fetch(request, { cache: "reload" })
-
-  /**
-   * Errors are not verified nor cached
-   */
-  if (!fetched.ok)
-    return fetched
-
-  const hashBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", await fetched.clone().arrayBuffer()))
-  const hashRawHex = Array.from(hashBytes).map(b => b.toString(16).padStart(2, "0")).join("")
-
-  if (hashRawHex !== hash)
-    throw new Error("Invalid hash")
-
-  cache.put(request, fetched.clone())
-
-  return fetched
-}
-
-self.addEventListener("fetch", (event) => {
-  if (process.env.NODE_ENV === "development")
-    return
-
-  const url = new URL(event.request.url)
-
-  /**
-   * Match exact
-   */
-  if (filesAndHashes.has(url.pathname)) {
-    const hash = filesAndHashes.get(url.pathname)
-
-    event.respondWith(unfetch(event.request, hash))
-
-    return
-  }
-
-  /**
-   * Directory
-   */
-  if (!url.pathname.split("/").at(-1)!.includes(".")) {
-    /**
-     * Match .html
-     */
-    {
-      const url = new URL(event.request.url)
-
-      url.pathname += ".html"
-
-      if (filesAndHashes.has(url.pathname)) {
-        const hash = filesAndHashes.get(url.pathname)
-
-        const request = new Request(url, event.request)
-
-        event.respondWith(unfetch(request, hash))
-
-        return
-      }
-    }
-
-    /**
-     * Match /index.html
-     */
-    {
-      const url = new URL(event.request.url)
-
-      url.pathname += "/index.html"
-
-      if (filesAndHashes.has(url.pathname)) {
-        const hash = filesAndHashes.get(url.pathname)
-
-        const request = new Request(url, event.request)
-
-        event.respondWith(unfetch(request, hash))
-
-        return
-      }
-    }
-  }
-
-  /**
-   * Not found
-   */
-  return
-})
+self.addEventListener("fetch", (event) => Cache.handle(event))
 
 self.addEventListener("message", async (event) => {
   if (event.origin !== location.origin)
