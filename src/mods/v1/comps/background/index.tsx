@@ -133,7 +133,7 @@ export namespace StickyServiceWorker {
       return
     })
 
-    const latestRes = await fetch(`${path}/service_worker.js`, { cache: "reload" })
+    const latestRes = await fetch(`${path}service_worker.js`, { cache: "reload" })
 
     if (!latestRes.ok)
       throw new Error(`Failed to fetch latest service worker`)
@@ -143,7 +143,7 @@ export namespace StickyServiceWorker {
 
     const currentHashRawHex = JsonLocalStorage.getOrSet("service_worker.current.hashRawHex", latestHashRawHex)
 
-    await navigator.serviceWorker.register(`${path}/${currentHashRawHex}.h.js`, { updateViaCache: "all" })
+    await navigator.serviceWorker.register(`${path}${currentHashRawHex}.h.js`, { updateViaCache: "all" })
 
     /**
      * No update found
@@ -181,7 +181,7 @@ export namespace StickyServiceWorker {
         future.resolve()
       })
 
-      await navigator.serviceWorker.register(`${path}/${latestHashRawHex}.h.js`, { updateViaCache: "all" })
+      await navigator.serviceWorker.register(`${path}${latestHashRawHex}.h.js`, { updateViaCache: "all" })
       await future.promise
     }
   }
@@ -198,7 +198,7 @@ export function BackgroundProvider(props: {
   const connectOrThrow = useCallback(async () => {
     navigator.serviceWorker.addEventListener("controllerchange", () => location.reload())
 
-    const update = await StickyServiceWorker.register("/v1")
+    const update = await StickyServiceWorker.register("/v1/")
 
     /**
      * Auto-update for now
