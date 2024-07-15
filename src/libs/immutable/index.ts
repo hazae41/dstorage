@@ -2,6 +2,29 @@ import { Nullable } from "@hazae41/option"
 
 declare const FILES_AND_HASHES: Nullable<[string, string][]>
 
+export class InvalidSha256HashError extends Error {
+
+  constructor(
+    /**
+     * Absolute url
+     */
+    readonly url: string,
+
+    /**
+     * Expected hash
+     */
+    readonly expected: string,
+
+    /**
+     * Received hash
+     */
+    readonly received: string
+  ) {
+    super(`Invalid SHA-256 hash for ${url}. Expected ${expected} but received ${received}.`)
+  }
+
+}
+
 export namespace Immutable {
 
   export const files = typeof FILES_AND_HASHES !== "undefined"
@@ -34,43 +57,52 @@ export namespace Immutable {
   /**
    * Match or fetch and cache
    * @param request 
-   * @param hash 
+   * @param expected 
    * @returns 
    */
-  export async function defetch(request: Request, hash: string) {
+  export async function defetch(request: Request, expected: string) {
     const cache = await caches.open("meta")
 
     /**
-     * Check cache if not force reloaded
+     * Check cache if possible
      */
     if (request.cache !== "reload") {
       const cached = await cache.match(request)
 
       if (cached != null)
+        /**
+         * Found
+         */
         return cached
 
       /**
-       * Not found in cache
+       * Not found
        */
     }
 
     /**
-     * Fetch but force reload
+     * Fetch but skip cache-control
      */
     const fetched = await fetch(request, { cache: "reload" })
+
+    /**
+     * Remove junk properties e.g. redirected
+     */
     const cleaned = new Response(fetched.body, fetched)
 
     /**
      * Errors are not verified nor cached
      */
-    if (!fetched.ok)
-      return fetched
+    if (!cleaned.ok)
+      return cleaned
 
-    const hashBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", await cleaned.clone().arrayBuffer()))
-    const hashRawHex = Array.from(hashBytes).map(b => b.toString(16).padStart(2, "0")).join("")
+    const receivedHashBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", await cleaned.clone().arrayBuffer()))
+    const receivedHashRawHex = Array.from(receivedHashBytes).map(b => b.toString(16).padStart(2, "0")).join("")
 
-    if (hashRawHex !== hash)
-      throw new Error("Invalid hash")
+    const received = receivedHashRawHex
+
+    if (received !== expected)
+      throw new InvalidSha256HashError(request.url, expected, received)
 
     cache.put(request, cleaned.clone())
 
