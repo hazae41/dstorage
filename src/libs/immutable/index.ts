@@ -58,6 +58,7 @@ export namespace Immutable {
      * Fetch but force reload
      */
     const fetched = await fetch(request, { cache: "reload" })
+    const cleaned = new Response(fetched.body, fetched)
 
     /**
      * Errors are not verified nor cached
@@ -65,15 +66,15 @@ export namespace Immutable {
     if (!fetched.ok)
       return fetched
 
-    const hashBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", await fetched.clone().arrayBuffer()))
+    const hashBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", await cleaned.clone().arrayBuffer()))
     const hashRawHex = Array.from(hashBytes).map(b => b.toString(16).padStart(2, "0")).join("")
 
     if (hashRawHex !== hash)
       throw new Error("Invalid hash")
 
-    cache.put(request, fetched.clone())
+    cache.put(request, cleaned.clone())
 
-    return fetched
+    return cleaned
   }
 
   /**
@@ -85,14 +86,17 @@ export namespace Immutable {
     if (process.env.NODE_ENV === "development")
       return
 
-    const url = new URL(event.request.url)
-
     /**
      * Match exact
      */
-    if (files.has(url.pathname)) {
-      const hash = files.get(url.pathname)
+    const url = new URL(event.request.url)
 
+    const hash = files.get(url.pathname)
+
+    if (hash != null) {
+      /**
+       * Do magic
+       */
       event.respondWith(defetch(event.request, hash))
 
       /**
@@ -118,12 +122,23 @@ export namespace Immutable {
 
       url.pathname += ".html"
 
-      if (files.has(url.pathname)) {
-        const hash = files.get(url.pathname)
+      const hash = files.get(url.pathname)
 
-        const request = new Request(url, event.request)
+      if (hash != null) {
+        /**
+         * Modify mode
+         */
+        const request0 = new Request(event.request, { mode: "same-origin" })
 
-        event.respondWith(defetch(request, hash))
+        /**
+         * Modify url
+         */
+        const request1 = new Request(url, request0)
+
+        /**
+         * Do magic
+         */
+        event.respondWith(defetch(request1, hash))
 
         /**
          * Found
@@ -140,12 +155,24 @@ export namespace Immutable {
 
       url.pathname += "/index.html"
 
-      if (files.has(url.pathname)) {
-        const hash = files.get(url.pathname)
+      const hash = files.get(url.pathname)
 
-        const request = new Request(url, event.request)
+      if (hash != null) {
 
-        event.respondWith(defetch(request, hash))
+        /**
+         * Modify mode
+         */
+        const request0 = new Request(event.request, { mode: "same-origin" })
+
+        /**
+         * Modify url
+         */
+        const request1 = new Request(url, request0)
+
+        /**
+         * Do magic
+         */
+        event.respondWith(defetch(request1, hash))
 
         /**
          * Found
