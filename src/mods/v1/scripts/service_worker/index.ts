@@ -1,25 +1,61 @@
 import "@hazae41/symbol-dispose-polyfill";
 
 import { RequestLike, ResponseLike, TransferableResponse } from "@/libs/http";
-import { Immutable } from "@/libs/immutable";
 import { RpcRouter } from "@/libs/jsonrpc";
 import { Kv } from "@/libs/storage";
+import { Immutable } from "@hazae41/immutable";
 import { RpcRequestPreinit } from "@hazae41/jsonrpc";
 
 export { };
 
 declare const self: ServiceWorkerGlobalScope
 
+
+export declare function $raw$(script: string): any
+
+const files = $raw$(`$run$(async () => {
+  const fs = await import("fs")
+  const path = await import("path")
+  const crypto = await import("crypto")
+
+  function* walkSync(dir) {
+    const files = fs.readdirSync(dir, { withFileTypes: true })
+
+    for (const file of files) {
+      if (file.isDirectory()) {
+        yield* walkSync(path.join(dir, file.name))
+      } else {
+        yield path.join(dir, file.name)
+      }
+    }
+  }
+
+  const filesAndHashes = new Array()
+
+  for (const absolute of walkSync("./out")) {
+    const text = fs.readFileSync(absolute)
+    const hash = crypto.createHash("sha256").update(text).digest("hex")
+
+    const relative = path.relative("./out", absolute)
+
+    filesAndHashes.push([\`/\${relative}\`, hash])
+  }
+
+  return filesAndHashes
+}, { space: 0 })`)
+
+const cache = new Immutable.Cache.Cache(new Map(files))
+
 self.addEventListener("install", (event) => {
   self.skipWaiting()
 })
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(Immutable.uncache())
-  event.waitUntil(Immutable.precache())
+  event.waitUntil(cache.uncache())
+  event.waitUntil(cache.precache())
 })
 
-self.addEventListener("fetch", (event) => Immutable.handle(event))
+self.addEventListener("fetch", (event) => cache.handle(event))
 
 self.addEventListener("message", async (event) => {
   if (event.origin !== location.origin)
