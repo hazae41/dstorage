@@ -1,12 +1,12 @@
 import { RpcRouter } from "@/libs/jsonrpc"
-import { Future } from "@hazae41/future"
+import { Immutable } from "@hazae41/immutable"
 import { Nullable } from "@hazae41/option"
 import { ReactNode, createContext, useCallback, useContext, useEffect, useState } from "react"
 
 export interface Background {
   readonly router: RpcRouter
   readonly worker: ServiceWorker
-  readonly update?: () => Promise<void>
+  readonly update?: Nullable<() => Promise<void>>
 }
 
 export const BackgroundContext = createContext<Nullable<Background>>(undefined)
@@ -20,173 +20,6 @@ export function useBackgroundContext() {
   return context
 }
 
-export namespace JsonLocalStorage {
-
-  export function set<T>(key: string, value: Nullable<T>) {
-    if (value != null)
-      localStorage.setItem(key, JSON.stringify(value))
-    else
-      localStorage.removeItem(key)
-  }
-
-  export function get<T>(key: string): Nullable<T> {
-    const value = localStorage.getItem(key)
-
-    if (value == null)
-      return value
-
-    return JSON.parse(value) as T
-  }
-
-  export function getAndSet<T>(key: string, newValue: T) {
-    const currentValue = get<T>(key)
-
-    set(key, newValue)
-
-    return currentValue
-  }
-
-  export function getOrSet<T>(key: string, defaultValue: Nullable<T>) {
-    const currentValue = get<T>(key)
-
-    if (currentValue != null)
-      return currentValue
-
-    set(key, defaultValue)
-
-    return defaultValue
-  }
-
-}
-
-export namespace StickyServiceWorker {
-
-  export async function register(path: string) {
-    const bricked = JsonLocalStorage.get("service_worker.bricked")
-
-    if (bricked)
-      throw new Error(`This website is bricked`)
-
-    /**
-     * Get previous registration
-     */
-    const registration = await navigator.serviceWorker.getRegistration()
-
-    /**
-     * Update detection is not foolproof but acts as a canary for administrators and other users
-     */
-    registration?.addEventListener("updatefound", async () => {
-      const { installing } = registration
-
-      if (installing == null)
-        return
-
-      const currentHashRawHex = JsonLocalStorage.get("service_worker.current.hashRawHex")
-      const pendingHashRawHex = JsonLocalStorage.get("service_worker.pending.hashRawHex")
-
-      installing.addEventListener("statechange", async () => {
-        if (installing.state !== "installed")
-          return
-        JsonLocalStorage.set("service_worker.pending.hashRawHex", undefined)
-      })
-
-      /**
-       * An update was pending and solicited
-       */
-      if (pendingHashRawHex === currentHashRawHex)
-        return
-
-      console.warn(`Unsolicited service worker update detected`)
-
-      /**
-       * Only clear synchronous storage as we must be faster than the service worker
-       */
-      localStorage.clear()
-      sessionStorage.clear()
-
-      /**
-       * Asynchronous storages should be encrypted or contain only public data
-       */
-
-      console.warn(`Successfully cleared storage`)
-
-      /**
-       * Unregister service worker to prevent further attacks
-       */
-      registration.unregister()
-
-      console.warn(`Successfully unregistered service worker`)
-
-      /**
-       * Enter brick mode
-       */
-      JsonLocalStorage.set("service_worker.bricked", true)
-
-      console.warn(`Successfully entered brick mode`)
-
-      while (true)
-        alert(`An unsolicited update attack was detected. Your storage has been safely erased. Please report this incident urgently. Please do not use this website (${location.origin}) anymore. Please close this page.`)
-
-      /**
-       * Page should be closed by now
-       */
-      return
-    })
-
-    const latestRes = await fetch(`${path}service_worker.js`, { cache: "reload" })
-
-    if (!latestRes.ok)
-      throw new Error(`Failed to fetch latest service worker`)
-
-    const latestHashBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", await latestRes.arrayBuffer()))
-    const latestHashRawHex = Array.from(latestHashBytes).map(b => b.toString(16).padStart(2, "0")).join("")
-
-    const currentHashRawHex = JsonLocalStorage.getOrSet("service_worker.current.hashRawHex", latestHashRawHex)
-
-    await navigator.serviceWorker.register(`${path}service_worker.${currentHashRawHex}.h.js`, { updateViaCache: "all" })
-
-    /**
-     * No update found
-     */
-    if (currentHashRawHex === latestHashRawHex)
-      return
-
-    return async () => {
-      const registration = await navigator.serviceWorker.getRegistration()
-
-      if (registration == null)
-        return
-
-      const { active } = registration
-
-      if (active == null)
-        return
-
-      const currentHashRawHex = JsonLocalStorage.get("service_worker.current.hashRawHex")
-
-      /**
-       * Recheck to avoid concurrent updates
-       */
-      if (currentHashRawHex === latestHashRawHex)
-        return
-
-      JsonLocalStorage.set("service_worker.current.hashRawHex", latestHashRawHex)
-      JsonLocalStorage.set("service_worker.pending.hashRawHex", latestHashRawHex)
-
-      const future = new Future<void>()
-
-      active.addEventListener("statechange", async () => {
-        if (active.state !== "redundant")
-          return
-        future.resolve()
-      })
-
-      await navigator.serviceWorker.register(`${path}service_worker.${latestHashRawHex}.h.js`, { updateViaCache: "all" })
-      await future.promise
-    }
-  }
-
-}
 
 export function BackgroundProvider(props: {
   readonly children?: ReactNode
@@ -198,7 +31,7 @@ export function BackgroundProvider(props: {
   const connectOrThrow = useCallback(async () => {
     navigator.serviceWorker.addEventListener("controllerchange", () => location.reload())
 
-    const update = await StickyServiceWorker.register("/v1/")
+    const update = await Immutable.register("/v1/service_worker.js")
 
     /**
      * Auto-update for now
