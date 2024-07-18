@@ -1,6 +1,7 @@
 import "@hazae41/symbol-dispose-polyfill";
 
 import { RpcRouter } from "@/libs/jsonrpc";
+import { Immutable } from "@hazae41/immutable";
 import { RpcRequestPreinit } from "@hazae41/jsonrpc";
 import { Nullable } from "@hazae41/option";
 
@@ -8,11 +9,63 @@ export { };
 
 declare const self: ServiceWorkerGlobalScope
 
-let target: Nullable<RpcRouter> = undefined
-
 self.addEventListener("install", (event) => {
   self.skipWaiting()
 })
+
+declare function $raw$<T>(script: string): T
+
+if (process.env.NODE_ENV === "production") {
+  /**
+   * Use $raw$ to avoid minifiers from mangling the code
+   */
+  const files = $raw$<[string, string][]>(`$run$(async () => {
+    const fs = await import("fs")
+    const path = await import("path")
+    const crypto = await import("crypto")
+  
+    function* walkSync(dir) {
+      const files = fs.readdirSync(dir, { withFileTypes: true })
+  
+      for (const file of files) {
+        if (file.isDirectory()) {
+          yield* walkSync(path.join(dir, file.name))
+        } else {
+          yield path.join(dir, file.name)
+        }
+      }
+    }
+  
+    const files = new Array()
+  
+    for (const absolute of walkSync("./out")) {
+      const name = path.basename(absolute)
+  
+      if (name.startsWith("service_worker."))
+        continue
+  
+      const text = fs.readFileSync(absolute)
+      const hash = crypto.createHash("sha256").update(text).digest("hex")
+  
+      const relative = path.relative("./out", absolute)
+  
+      files.push([\`/\${relative}\`, hash])
+    }
+  
+    return files
+  }, { space: 0 })`)
+
+  const cache = new Immutable.Cache(new Map(files))
+
+  self.addEventListener("activate", (event) => {
+    event.waitUntil(cache.uncache())
+    event.waitUntil(cache.precache())
+  })
+
+  self.addEventListener("fetch", (event) => cache.handle(event))
+}
+
+let target: Nullable<RpcRouter> = undefined
 
 self.addEventListener("message", async (event) => {
   if (event.origin !== location.origin)

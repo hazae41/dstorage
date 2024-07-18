@@ -8,13 +8,13 @@ import { RpcRequestPreinit } from "@hazae41/jsonrpc";
 
 export { };
 
-declare function $raw$<T>(script: string): T
-
 declare const self: ServiceWorkerGlobalScope
 
 self.addEventListener("install", (event) => {
   self.skipWaiting()
 })
+
+declare function $raw$<T>(script: string): T
 
 if (process.env.NODE_ENV === "production") {
   /**
