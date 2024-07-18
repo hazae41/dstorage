@@ -37,7 +37,7 @@ if (process.env.NODE_ENV === "production") {
       }
     }
   
-    const filesAndHashes = new Array()
+    const files = new Array()
   
     for (const absolute of walkSync("./out")) {
       const name = path.basename(absolute)
@@ -50,10 +50,10 @@ if (process.env.NODE_ENV === "production") {
   
       const relative = path.relative("./out", absolute)
   
-      filesAndHashes.push([\`/\${relative}\`, hash])
+      files.push([\`/\${relative}\`, hash])
     }
   
-    return filesAndHashes
+    return files
   }, { space: 0 })`)
 
   const cache = new Immutable.Cache(new Map(files))
