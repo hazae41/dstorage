@@ -44,7 +44,7 @@ module.exports = withImmutable({
   pageExtensions: ["js", "jsx", "mdx", "ts", "tsx"],
 
   generateBuildId() {
-    return "unique"
+    return "immutable"
   },
 
   compiles: function* (wpconfig) {
