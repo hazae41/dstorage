@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Loading...</title>
+    <script type="module">
+        const latestScriptUrl = new URL(`/v1/service_worker.js`, location.href)
+        const latestScriptRes = await fetch(latestScriptUrl, { cache: "reload" })
+
+        if (!latestScriptRes.ok)
+          throw new Error(`Failed to fetch latest service-worker`)
+
+        const { pathname } = latestScriptUrl 
+
+        const slashes = pathname.split("/")
+
+        const dirname = slashes.slice(0, -1).join("/") || "."
+        const filename = slashes.at(-1) || ""
+
+        const dots = filename.split(".")
+
+        const basename = dots.slice(0, 1).join(".") || ""
+        const extension = dots.at(1) || ""       
+
+        const latestHashBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", await latestScriptRes.arrayBuffer()))
+        const latestHashRawHex = Array.from(latestHashBytes).map(b => b.toString(16).padStart(2, "0")).join("")
+        const latestVersion = latestHashRawHex.slice(0, 6)
+
+        const latestVersionScriptPath = `${basename}.${latestVersion}.h.${extension}`
+        const latestVersionScriptUrl = new URL(latestVersionScriptPath, latestScriptUrl)
+
+        await navigator.serviceWorker.register(latestVersionScriptUrl, { updateViaCache: "all" })
+        await navigator.serviceWorker.ready
+
+        location.reload()
+    </script>
+</html>

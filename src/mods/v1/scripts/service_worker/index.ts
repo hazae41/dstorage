@@ -40,9 +40,18 @@ if (process.env.NODE_ENV === "production") {
     const files = new Array()
   
     for (const absolute of walkSync("./out")) {
-      const name = path.basename(absolute)
+      const filename = path.basename(absolute)
   
-      if (name.startsWith("service_worker."))
+      /**
+       * Do not cache service-workers
+       */
+      if (filename.startsWith("service_worker."))
+        continue
+
+      /**
+       * Do not cache bootpages
+       */
+      if (filename.endsWith(".html") && !filename.startsWith("_"))
         continue
   
       const text = fs.readFileSync(absolute)

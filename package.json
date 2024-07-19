@@ -11,7 +11,7 @@
   "dependencies": {
     "@hazae41/disposer": "^2.0.20",
     "@hazae41/future": "^1.0.3",
-    "@hazae41/immutable": "^0.0.1",
+    "@hazae41/immutable": "^0.0.4",
     "@hazae41/jsonrpc": "^1.0.5",
     "@hazae41/option": "^1.0.27",
     "@hazae41/plume": "^2.4.2",
