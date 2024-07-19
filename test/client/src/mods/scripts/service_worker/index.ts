@@ -46,6 +46,12 @@ if (process.env.NODE_ENV === "production") {
   
     for (const absolute of walkSync("./out")) {
       const filename = path.basename(absolute)
+
+      /**
+       * Do not cache saumon files
+       */
+      if (filename.endsWith(".saumon.js"))
+        continue
   
       /**
        * Do not cache service-workers

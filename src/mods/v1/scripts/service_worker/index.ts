@@ -49,6 +49,12 @@ if (process.env.NODE_ENV === "production") {
       const filename = path.basename(absolute)
   
       /**
+       * Do not cache saumon files
+       */
+      if (filename.endsWith(".saumon.js"))
+        continue
+      
+      /**
        * Do not cache service-workers
        */
       if (filename.startsWith("service_worker."))
