@@ -13,8 +13,14 @@ self.addEventListener("install", (event) => {
   self.skipWaiting()
 })
 
+/**
+ * Declare global macro
+ */
 declare function $raw$<T>(script: string): T
 
+/**
+ * Only cache on production
+ */
 if (process.env.NODE_ENV === "production") {
   /**
    * Use $raw$ to avoid minifiers from mangling the code
@@ -39,9 +45,18 @@ if (process.env.NODE_ENV === "production") {
     const files = new Array()
   
     for (const absolute of walkSync("./out")) {
-      const name = path.basename(absolute)
+      const filename = path.basename(absolute)
   
-      if (name.startsWith("service_worker."))
+      /**
+       * Do not cache service-workers
+       */
+      if (filename.startsWith("service_worker."))
+        continue
+
+      /**
+       * Do not cache bootpages
+       */
+      if (filename.endsWith(".html") && !filename.startsWith("_"))
         continue
   
       const text = fs.readFileSync(absolute)
@@ -58,10 +73,20 @@ if (process.env.NODE_ENV === "production") {
   const cache = new Immutable.Cache(new Map(files))
 
   self.addEventListener("activate", (event) => {
+    /**
+     * Uncache previous version
+     */
     event.waitUntil(cache.uncache())
+
+    /**
+     * Precache current version
+     */
     event.waitUntil(cache.precache())
   })
 
+  /**
+   * Respond with cache
+   */
   self.addEventListener("fetch", (event) => cache.handle(event))
 }
 
