@@ -28,7 +28,7 @@ async function compileServiceWorkerV1(wpconfig) {
     entry: "./src/mods/v1/scripts/service_worker/index.ts",
     output: {
       path: path.join(process.cwd(), ".webpack"),
-      filename: "./v1/service_worker.js"
+      filename: "./v1/service_worker.latest.js"
     },
     optimization: {
       minimize: true,
