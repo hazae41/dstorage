@@ -1,4 +1,4 @@
-import { Layout } from "@/mods/v1/comps/app"
+import { Layout } from "@/mods/v0/comps/app"
 
 export default function Page() {
   return <Layout>

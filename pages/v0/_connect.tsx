@@ -1,7 +1,7 @@
 import "@hazae41/symbol-dispose-polyfill";
 
-import { Layout } from "@/mods/v1/comps/app";
-import { useBackgroundContext } from "@/mods/v1/comps/background";
+import { Layout } from "@/mods/v0/comps/app";
+import { useBackgroundContext } from "@/mods/v0/comps/background";
 import { RpcRequestPreinit } from "@hazae41/jsonrpc";
 import { useCallback, useEffect } from "react";
 
@@ -41,7 +41,7 @@ export function Subpage() {
       if (clients.length > 1)
         close()
 
-      location.assign("/v1/keepalive")
+      location.assign("/v0/keepalive")
       return
     }
   }, [background])

@@ -2,7 +2,7 @@ import "@hazae41/symbol-dispose-polyfill";
 
 import { RpcRouter } from "@/libs/jsonrpc";
 import { Kv } from "@/libs/storage";
-import { Layout } from "@/mods/v1/comps/app";
+import { Layout } from "@/mods/v0/comps/app";
 import { Future } from "@hazae41/future";
 import { RpcRequest, RpcRequestPreinit } from "@hazae41/jsonrpc";
 import { WebAuthnStorage } from "@hazae41/webauthnstorage";

@@ -17,7 +17,7 @@ function* walkSync(directory) {
 
 async function compileServiceWorkerV1(wpconfig) {
   await NextAsImmutable.compileAndVersionAsMacro({
-    name: "v1/service_worker",
+    name: "v0/service_worker",
     devtool: false,
     target: "webworker",
     mode: wpconfig.mode,
@@ -25,10 +25,10 @@ async function compileServiceWorkerV1(wpconfig) {
     resolveLoader: wpconfig.resolveLoader,
     module: wpconfig.module,
     plugins: wpconfig.plugins,
-    entry: "./src/mods/v1/scripts/service_worker/index.ts",
+    entry: "./src/mods/v0/scripts/service_worker/index.ts",
     output: {
       path: path.join(process.cwd(), ".webpack"),
-      filename: "./v1/service_worker.latest.js"
+      filename: "./v0/service_worker.latest.js"
     },
     optimization: {
       minimize: true,

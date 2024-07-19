@@ -1,7 +1,7 @@
 import { RequestLike, ResponseLike, TransferableResponse } from "@/libs/http"
 import { RpcRouter } from "@/libs/jsonrpc"
 import { Kv } from "@/libs/storage"
-import { Layout } from "@/mods/v1/comps/app"
+import { Layout } from "@/mods/v0/comps/app"
 import { RpcRequestPreinit } from "@hazae41/jsonrpc"
 import { useCallback, useEffect, useState } from "react"
 

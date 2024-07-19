@@ -31,7 +31,7 @@ export function BackgroundProvider(props: {
   const connectOrThrow = useCallback(async () => {
     navigator.serviceWorker.addEventListener("controllerchange", () => location.reload())
 
-    const update = await Immutable.register("/v1/service_worker.latest.js")
+    const update = await Immutable.register("/v0/service_worker.latest.js")
 
     /**
      * Auto-update for now

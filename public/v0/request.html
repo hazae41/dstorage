@@ -3,7 +3,7 @@
 <head>
     <title>Loading...</title>
     <script type="module">
-        const latestScriptUrl = new URL(`/v1/service_worker.latest.js`, location.href)
+        const latestScriptUrl = new URL(`/v0/service_worker.latest.js`, location.href)
         const latestScriptRes = await fetch(latestScriptUrl, { cache: "reload" })
 
         if (!latestScriptRes.ok)
