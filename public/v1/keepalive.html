@@ -11,21 +11,14 @@
 
         const { pathname } = latestScriptUrl 
 
-        const slashes = pathname.split("/")
-
-        const dirname = slashes.slice(0, -1).join("/") || "."
-        const filename = slashes.at(-1) || ""
-
-        const dots = filename.split(".")
-
-        const basename = dots.slice(0, 1).join(".") || ""
-        const extension = dots.at(1) || ""       
+        const filename = pathname.split("/").at(-1)
+        const basename = filename.split(".").at(0)
 
         const latestHashBytes = new Uint8Array(await crypto.subtle.digest("SHA-256", await latestScriptRes.arrayBuffer()))
         const latestHashRawHex = Array.from(latestHashBytes).map(b => b.toString(16).padStart(2, "0")).join("")
         const latestVersion = latestHashRawHex.slice(0, 6)
 
-        const latestVersionScriptPath = `${basename}.${latestVersion}.h.${extension}`
+        const latestVersionScriptPath = `${basename}.${latestVersion}.js`
         const latestVersionScriptUrl = new URL(latestVersionScriptPath, latestScriptUrl)
 
         await navigator.serviceWorker.register(latestVersionScriptUrl, { updateViaCache: "all" })
