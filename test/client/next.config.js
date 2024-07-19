@@ -4,7 +4,7 @@ const { NextAsImmutable, withImmutable } = require("@hazae41/next-as-immutable")
 const fs = require("fs")
 
 function* walkSync(directory) {
-  const files = fs.readdirSync(directory, { withFileTypes: true })
+  const files = fs.readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name > b.name ? 1 : -1)
 
   for (const file of files) {
     if (file.isDirectory()) {
