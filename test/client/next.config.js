@@ -43,10 +43,6 @@ module.exports = withImmutable({
   output: "export",
   pageExtensions: ["js", "jsx", "mdx", "ts", "tsx"],
 
-  generateBuildId() {
-    return "immutable"
-  },
-
   compiles: function* (wpconfig) {
     for (const absolute of walkSync("./public")) {
       const filename = path.basename(absolute)
