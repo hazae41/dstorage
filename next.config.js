@@ -15,7 +15,7 @@ function* walkSync(directory) {
   }
 }
 
-async function compileServiceWorkerV1(wpconfig) {
+async function compileServiceWorkerV0(wpconfig) {
   await NextAsImmutable.compileAndVersionAsMacro({
     name: "v0/service_worker",
     devtool: false,
@@ -40,8 +40,6 @@ async function compileServiceWorkerV1(wpconfig) {
 module.exports = withImmutable({
   reactStrictMode: false,
   swcMinify: true,
-  output: "export",
-  pageExtensions: ["js", "jsx", "mdx", "ts", "tsx"],
 
   compiles: function* (wpconfig) {
     for (const absolute of walkSync("./public")) {
@@ -53,6 +51,6 @@ module.exports = withImmutable({
       continue
     }
 
-    yield compileServiceWorkerV1(wpconfig)
+    yield compileServiceWorkerV0(wpconfig)
   }
 })

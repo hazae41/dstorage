@@ -23,7 +23,7 @@
     "react-dom": "^18"
   },
   "devDependencies": {
-    "@hazae41/next-as-immutable": "^0.0.7",
+    "@hazae41/next-as-immutable": "^0.0.8",
     "@hazae41/saumon": "^0.2.11",
     "@types/node": "^20",
     "@types/react": "^18",

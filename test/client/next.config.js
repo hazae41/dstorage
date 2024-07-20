@@ -40,8 +40,6 @@ async function compileServiceWorker(wpconfig) {
 module.exports = withImmutable({
   reactStrictMode: false,
   swcMinify: true,
-  output: "export",
-  pageExtensions: ["js", "jsx", "mdx", "ts", "tsx"],
 
   compiles: function* (wpconfig) {
     for (const absolute of walkSync("./public")) {
