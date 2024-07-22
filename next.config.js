@@ -25,7 +25,7 @@ async function compileServiceWorkerV0(wpconfig) {
     resolveLoader: wpconfig.resolveLoader,
     module: wpconfig.module,
     plugins: wpconfig.plugins,
-    entry: "./src/mods/v0/scripts/service_worker/index.ts",
+    entry: "./src/mods/scripts/service_worker/index.ts",
     output: {
       path: path.join(process.cwd(), ".webpack"),
       filename: "./v0/service_worker.latest.js"

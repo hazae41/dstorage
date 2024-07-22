@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@hazae41/chemin": "^1.0.0",
     "@hazae41/disposer": "^2.0.20",
     "@hazae41/future": "^1.0.3",
     "@hazae41/immutable": "^0.0.6",

@@ -1,18 +1,13 @@
 import "@hazae41/symbol-dispose-polyfill";
 
-import { Layout } from "@/mods/v0/comps/app";
-import { useBackgroundContext } from "@/mods/v0/comps/background";
+import { useBackgroundContext } from "@/mods/comps/background";
+import { usePathContext } from "@hazae41/chemin";
 import { RpcRequestPreinit } from "@hazae41/jsonrpc";
 import { useCallback, useEffect } from "react";
 
-export default function Page() {
-  return <Layout>
-    <Subpage />
-  </Layout>
-}
-
-export function Subpage() {
-  const background = useBackgroundContext()
+export function ConnectWindowPage() {
+  const path = usePathContext().unwrap()
+  const background = useBackgroundContext().unwrap()
 
   const onMessage = useCallback(async (event: MessageEvent) => {
     if (event.origin === location.origin)
@@ -41,7 +36,7 @@ export function Subpage() {
       if (clients.length > 1)
         close()
 
-      location.assign("/v0/keepalive")
+      location.replace(path.go("/keepalive"))
       return
     }
   }, [background])

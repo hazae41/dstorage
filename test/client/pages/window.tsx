@@ -37,7 +37,7 @@ export default function Home() {
   }, [pingOrThrow])
 
   const connectOrThrow = useCallback(async () => {
-    const window = open(`${TARGET.href}/connect`, "_blank", "width=100,height=100")
+    const window = open(`${TARGET}/#/connect/window`, "_blank", "width=100,height=100")
 
     if (window == null)
       return
@@ -56,7 +56,7 @@ export default function Home() {
 
   const onAskClick = useCallback(async () => {
     try {
-      const window = open(`${TARGET}/request`, "_blank")
+      const window = open(`${TARGET}/#/request`, "_blank")
 
       if (window == null)
         return
@@ -124,7 +124,7 @@ export default function Home() {
 
   const onWebAuthnCreateClick = useCallback(async () => {
     try {
-      const window = open(`${TARGET}/request`, "_blank")
+      const window = open(`${TARGET}/#/request`, "_blank")
 
       if (window == null)
         return
@@ -157,7 +157,7 @@ export default function Home() {
 
   const onWebAuthnGetClick = useCallback(async () => {
     try {
-      const window = open(`${TARGET}/request`, "_blank")
+      const window = open(`${TARGET}/#/request`, "_blank")
 
       if (window == null)
         return

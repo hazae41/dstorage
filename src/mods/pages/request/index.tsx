@@ -2,7 +2,6 @@ import "@hazae41/symbol-dispose-polyfill";
 
 import { RpcRouter } from "@/libs/jsonrpc";
 import { Kv } from "@/libs/storage";
-import { Layout } from "@/mods/v0/comps/app";
 import { Future } from "@hazae41/future";
 import { RpcRequest, RpcRequestPreinit } from "@hazae41/jsonrpc";
 import { WebAuthnStorage } from "@hazae41/webauthnstorage";
@@ -15,13 +14,7 @@ export interface Message {
   readonly future: Future<unknown>
 }
 
-export default function Page() {
-  return <Layout>
-    <Subpage />
-  </Layout>
-}
-
-export function Subpage() {
+export function RequestPage() {
   const [message, setMessage] = useState<Message>()
 
   const onMessage = useCallback(async (event: MessageEvent) => {
@@ -73,10 +66,10 @@ export function Subpage() {
   if (message == null)
     return null
 
-  return <Router message={message} />
+  return <RequestRouter message={message} />
 }
 
-export function Router(props: {
+export function RequestRouter(props: {
   readonly message: Message
 }) {
   const { message } = props
