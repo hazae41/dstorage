@@ -42,7 +42,7 @@ module.exports = withImmutable({
   swcMinify: true,
 
   /**
-   * Allow scoping of service worker
+   * Allow service-worker scoping
    */
   trailingSlash: true,
 
