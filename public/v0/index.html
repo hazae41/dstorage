@@ -22,6 +22,8 @@
     const latestVersionScriptPath = `${basename}.${latestVersion}.js`
     const latestVersionScriptUrl = new URL(latestVersionScriptPath, latestScriptUrl)
 
+    console.log(latestVersionScriptUrl)
+
     await navigator.serviceWorker.register(latestVersionScriptUrl, { updateViaCache: "all" })
     await navigator.serviceWorker.ready
 
