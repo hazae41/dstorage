@@ -45,6 +45,7 @@ if (process.env.NODE_ENV === "production") {
     const files = new Array()
   
     for (const absolute of walkSync("./out")) {
+      const dirname = path.dirname(absolute)
       const filename = path.basename(absolute)
 
       /**
