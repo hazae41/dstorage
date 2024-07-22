@@ -62,7 +62,11 @@ if (process.env.NODE_ENV === "production") {
       /**
        * Do not cache bootpages
        */
-      if (filename.endsWith(".html") && !filename.startsWith("_"))
+      if (fs.existsSync(\`./\${dirname}/_\${filename}\`))
+        continue
+      if (filename.endsWith(".html") && fs.existsSync(\`./\${dirname}/_\${filename.slice(0, -5)}/index.html\`))
+        continue
+      if (!filename.endsWith(".html") && fs.existsSync(\`./\${dirname}/_\${filename}/index\`))
         continue
   
       const text = fs.readFileSync(absolute)

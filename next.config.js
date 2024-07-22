@@ -46,8 +46,6 @@ module.exports = withImmutable({
    */
   trailingSlash: true,
 
-  skipTrailingSlashRedirect: true,
-
   compiles: function* (wpconfig) {
     for (const absolute of walkSync("./public")) {
       const filename = path.basename(absolute)
