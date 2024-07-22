@@ -1,8 +1,8 @@
 {
-  "name": "Example",
-  "short_name": "Example",
+  "name": "DStorage",
+  "short_name": "DStorage",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#fff",
-  "description": "Example"
+  "background_color": "#fffffff",
+  "description": "DStorage"
 }
