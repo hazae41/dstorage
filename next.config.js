@@ -40,6 +40,10 @@ async function compileServiceWorkerV0(wpconfig) {
 module.exports = withImmutable({
   reactStrictMode: false,
   swcMinify: true,
+
+  /**
+   * Allow scoping of service worker
+   */
   trailingSlash: true,
 
   compiles: function* (wpconfig) {
