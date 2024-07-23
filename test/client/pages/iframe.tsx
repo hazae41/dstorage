@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from "react";
 const TARGET = new URL("https://dstorage.hazae41.me/v0")
 
 export default function Home() {
-  const background = useBackgroundContext()
+  const background = useBackgroundContext().unwrap()
 
   const [iframe, setIframe] = useState<Nullable<HTMLIFrameElement>>()
 

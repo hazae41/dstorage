@@ -16,7 +16,7 @@ export function useBackgroundContext() {
   return Option.wrap(useContext(BackgroundContext))
 }
 
-export function BackgroundProvider(props: ChildrenProps & { readonly script: string }) {
+export function BackgroundProvider(props: ChildrenProps & { readonly script: string | URL }) {
   const { script, children } = props
 
   const [background, setBackground] = useState<Background>()

@@ -1,7 +1,8 @@
 import { RpcRouter } from "@/libs/jsonrpc"
+import { ChildrenProps } from "@/libs/react"
 import { Immutable } from "@hazae41/immutable"
-import { Nullable } from "@hazae41/option"
-import { ReactNode, createContext, useCallback, useContext, useEffect, useState } from "react"
+import { Nullable, Option } from "@hazae41/option"
+import { createContext, useCallback, useContext, useEffect, useState } from "react"
 
 export interface Background {
   readonly router: RpcRouter
@@ -12,25 +13,18 @@ export interface Background {
 export const BackgroundContext = createContext<Nullable<Background>>(undefined)
 
 export function useBackgroundContext() {
-  const context = useContext(BackgroundContext)
-
-  if (context == null)
-    throw new Error("BackgroundContext is not provided")
-
-  return context
+  return Option.wrap(useContext(BackgroundContext))
 }
 
-export function BackgroundProvider(props: {
-  readonly children?: ReactNode
-}) {
-  const { children } = props
+export function BackgroundProvider(props: ChildrenProps & { readonly script: string | URL }) {
+  const { script, children } = props
 
   const [background, setBackground] = useState<Background>()
 
   const connectOrThrow = useCallback(async () => {
     navigator.serviceWorker.addEventListener("controllerchange", () => location.reload())
 
-    const update = await Immutable.register("/service_worker.latest.js")
+    const update = await Immutable.register(script)
 
     /**
      * Auto-update for now
