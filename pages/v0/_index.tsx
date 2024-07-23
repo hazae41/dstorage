@@ -5,13 +5,11 @@ import { ConnectIframePage } from "@/mods/pages/connect/iframe";
 import { ConnectWindowPage } from "@/mods/pages/connect/window";
 import { KeepalivePage } from "@/mods/pages/keepalive";
 import { RequestPage } from "@/mods/pages/request";
-import { HashPathProvider, usePathContext } from "@hazae41/chemin";
+import { usePathContext } from "@hazae41/chemin";
 
 export default function Page() {
   return <BackgroundProvider script="/v0/service_worker.latest.js">
-    <HashPathProvider>
-      <Router />
-    </HashPathProvider>
+    <Router />
   </BackgroundProvider>
 }
 
