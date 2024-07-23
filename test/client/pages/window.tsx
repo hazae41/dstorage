@@ -6,7 +6,7 @@ import { WindowMessenger } from "@/libs/messenger";
 import { useBackgroundContext } from "@/mods/comps/background";
 import { useCallback, useEffect, useState } from "react";
 
-const TARGET = new URL("https://cheaper-cuba-delivery-count.trycloudflare.com/v1")
+const TARGET = new URL("https://usually-canyon-inch-holding.trycloudflare.com/v0")
 
 export default function Home() {
   const background = useBackgroundContext()
