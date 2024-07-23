@@ -7,7 +7,7 @@ import { useBackgroundContext } from "@/mods/comps/background";
 import { Nullable } from "@hazae41/option";
 import { useCallback, useEffect, useState } from "react";
 
-const TARGET = new URL("https://usually-canyon-inch-holding.trycloudflare.com/v0")
+const TARGET = new URL("https://dstorage.hazae41.me/v0")
 
 export default function Home() {
   const background = useBackgroundContext()
