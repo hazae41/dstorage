@@ -1,7 +1,7 @@
 export namespace Kv {
 
   export async function ask(caches: CacheStorage, origin: string, scope: string) {
-    if (scope === "meta")
+    if (scope.startsWith("#"))
       throw new Error("Not allowed")
 
     const cache = await caches.open(scope)
@@ -18,7 +18,7 @@ export namespace Kv {
   }
 
   export async function allow(caches: CacheStorage, origin: string, scope: string, capacity: number) {
-    if (scope === "meta")
+    if (scope.startsWith("#"))
       throw new Error("Not allowed")
 
     const cache = await caches.open(scope)
@@ -46,7 +46,7 @@ export namespace Kv {
   }
 
   export async function get(caches: CacheStorage, origin: string, scope: string, request: Request) {
-    if (scope === "meta")
+    if (scope.startsWith("#"))
       throw new Error("Not allowed")
 
     const cache = await caches.open(scope)
@@ -74,7 +74,7 @@ export namespace Kv {
   }
 
   export async function set(caches: CacheStorage, origin: string, scope: string, request: Request, response: Response) {
-    if (scope === "meta")
+    if (scope.startsWith("#"))
       throw new Error("Not allowed")
 
     const cache = await caches.open(scope)
