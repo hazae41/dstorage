@@ -8,7 +8,7 @@ import { RequestPage } from "@/mods/pages/request";
 import { usePathContext } from "@hazae41/chemin";
 
 export default function Page() {
-  return <BackgroundProvider script="/v0/service_worker.latest.js">
+  return <BackgroundProvider>
     <Router />
   </BackgroundProvider>
 }

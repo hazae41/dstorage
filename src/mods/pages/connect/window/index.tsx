@@ -39,7 +39,7 @@ export function ConnectWindowPage() {
       location.replace(path.go("/keepalive"))
       return
     }
-  }, [background])
+  }, [path, background])
 
   useEffect(() => {
     addEventListener("message", onMessage)

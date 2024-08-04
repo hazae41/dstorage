@@ -4,36 +4,36 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && saumon build -r ./out",
-    "start": "npx serve@latest out",
+    "build": "next build && node ./scripts/build.mjs",
+    "start": "npx serve --config ../serve.json ./out",
     "lint": "next lint"
   },
   "dependencies": {
-    "@hazae41/chemin": "^1.0.0",
+    "@hazae41/chemin": "^1.0.1",
     "@hazae41/disposer": "^2.0.20",
     "@hazae41/future": "^1.0.3",
-    "@hazae41/immutable": "^1.0.0",
-    "@hazae41/jsonrpc": "^1.0.5",
+    "@hazae41/immutable": "^1.0.11",
+    "@hazae41/jsonrpc": "^1.0.7",
     "@hazae41/option": "^1.0.27",
     "@hazae41/plume": "^2.4.2",
     "@hazae41/signals": "^1.0.1",
     "@hazae41/symbol-dispose-polyfill": "^1.0.2",
     "@hazae41/webauthnstorage": "^1.0.1",
-    "next": "14.2.3",
-    "react": "^18",
-    "react-dom": "^18"
+    "next": "14.2.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@hazae41/next-as-immutable": "^0.0.8",
-    "@hazae41/saumon": "^0.2.11",
-    "@types/node": "^20",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
-    "eslint": "^8",
-    "eslint-config-next": "14.2.3",
-    "postcss": "^8",
-    "tailwindcss": "^3.4.1",
+    "@hazae41/next-as-immutable": "^1.0.1",
+    "@hazae41/next-sidebuild": "^1.0.0",
+    "@types/node": "^22.1.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2.5",
+    "postcss": "^8.4.40",
+    "tailwindcss": "^3.4.7",
     "terser-webpack-plugin": "^5.3.10",
-    "typescript": "^5"
+    "typescript": "^5.5.4"
   }
 }

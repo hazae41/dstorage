@@ -16,15 +16,15 @@ export function useBackgroundContext() {
   return Option.wrap(useContext(BackgroundContext))
 }
 
-export function BackgroundProvider(props: ChildrenProps & { readonly script: string | URL }) {
-  const { script, children } = props
+export function BackgroundProvider(props: ChildrenProps) {
+  const { children } = props
 
   const [background, setBackground] = useState<Background>()
 
   const connectOrThrow = useCallback(async () => {
     navigator.serviceWorker.addEventListener("controllerchange", () => location.reload())
 
-    const update = await Immutable.register(script)
+    const update = await Immutable.register("/v0/service_worker.latest.js", { localStoragePrefix: "v0." })
 
     /**
      * Auto-update for now
