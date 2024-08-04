@@ -1,22 +1,10 @@
 const TerserPlugin = require("terser-webpack-plugin")
 const path = require("path")
-const { NextAsImmutable, withImmutable } = require("@hazae41/next-as-immutable")
-const fs = require("fs")
-
-function* walkSync(directory) {
-  const files = fs.readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name > b.name ? 1 : -1)
-
-  for (const file of files) {
-    if (file.isDirectory()) {
-      yield* walkSync(path.join(directory, file.name))
-    } else {
-      yield path.join(directory, file.name)
-    }
-  }
-}
+const { NextAsImmutable, withNextAsImmutable } = require("@hazae41/next-as-immutable")
+const { withNextSidebuild, NextSidebuild } = require("@hazae41/next-sidebuild")
 
 async function compileServiceWorker(wpconfig) {
-  await NextAsImmutable.compileAndVersionAsMacro({
+  await NextSidebuild.compile({
     name: "service_worker",
     devtool: false,
     target: "webworker",
@@ -37,21 +25,11 @@ async function compileServiceWorker(wpconfig) {
   })
 }
 
-module.exports = withImmutable({
+module.exports = withNextAsImmutable(withNextSidebuild({
   reactStrictMode: false,
   swcMinify: true,
-  trailingSlash: true,
 
-  compiles: function* (wpconfig) {
-    for (const absolute of walkSync("./public")) {
-      const filename = path.basename(absolute)
-
-      if (filename.startsWith("service_worker."))
-        fs.rmSync(absolute, { force: true })
-
-      continue
-    }
-
+  sidebuilds: function* (wpconfig) {
     yield compileServiceWorker(wpconfig)
   }
-})
+}))
